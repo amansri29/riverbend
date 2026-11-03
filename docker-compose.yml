@@ -1,0 +1,79 @@
+# One-command local run: `docker compose up --build` (or `make run`).
+# Services: Postgres, Pub/Sub emulator, a one-shot init (migrate + seed + topics), API, worker.
+# Secrets come from an uncommitted .env (copy .env.example). LLM_PROVIDER=fake needs no key.
+
+x-app-env: &app-env
+  DATABASE_URL: postgresql://riverbend_app:${APP_DB_PASSWORD:-riverbend_app}@postgres:5432/riverbend
+  MIGRATION_DATABASE_URL: postgresql://postgres:postgres@postgres:5432/riverbend
+  APP_DB_PASSWORD: ${APP_DB_PASSWORD:-riverbend_app}
+  DISPATCHER: pubsub
+  PUBSUB_PROJECT: riverbend-local
+  PUBSUB_EMULATOR_HOST: pubsub:8085
+  PUBSUB_TOPIC: work-order-jobs
+  PUBSUB_SUBSCRIPTION: work-order-jobs-push
+  PUBSUB_DLQ_TOPIC: work-order-jobs-dlq
+  PUBSUB_DLQ_SUBSCRIPTION: work-order-jobs-dlq-push
+  PUBSUB_PUSH_ENDPOINT: http://worker:8081/pubsub/push
+  PUBSUB_DLQ_PUSH_ENDPOINT: http://worker:8081/pubsub/dlq
+  LLM_PROVIDER: ${LLM_PROVIDER:-fake}
+  LLM_FAULT: ${LLM_FAULT:-}
+  LLM_RECORD_DIR: /srv/samples/recorded
+  AZURE_OPENAI_ENDPOINT: ${AZURE_OPENAI_ENDPOINT:-}
+  AZURE_OPENAI_API_KEY: ${AZURE_OPENAI_API_KEY:-}
+  AZURE_OPENAI_DEPLOYMENT: ${AZURE_OPENAI_DEPLOYMENT:-}
+  AZURE_OPENAI_API_VERSION: ${AZURE_OPENAI_API_VERSION:-2024-10-21}
+  LLM_PRICE_INPUT_USD_PER_1M: ${LLM_PRICE_INPUT_USD_PER_1M:-2.50}
+  LLM_PRICE_OUTPUT_USD_PER_1M: ${LLM_PRICE_OUTPUT_USD_PER_1M:-10.00}
+  DEFAULT_MONTHLY_CAP_USD: ${DEFAULT_MONTHLY_CAP_USD:-25}
+  DEV_API_KEYS: "true"
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: riverbend
+    ports: ["5432:5432"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d riverbend"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  pubsub:
+    image: gcr.io/google.com/cloudsdktool/google-cloud-cli:emulators
+    command: ["gcloud", "beta", "emulators", "pubsub", "start", "--project=riverbend-local", "--host-port=0.0.0.0:8085"]
+    ports: ["8085:8085"]
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fs http://localhost:8085/ || exit 1"]
+      interval: 2s
+      timeout: 3s
+      retries: 60
+
+  init:
+    build: .
+    environment: *app-env
+    command: ["sh", "compose/init.sh"]
+    volumes: ["./compose:/srv/compose:ro"]
+    depends_on:
+      postgres: { condition: service_healthy }
+      pubsub: { condition: service_healthy }
+
+  api:
+    build: .
+    environment: *app-env
+    command: ["uvicorn", "app.api.main:app", "--host", "0.0.0.0", "--port", "8080"]
+    ports: ["8080:8080"]
+    volumes: ["./samples/recorded:/srv/samples/recorded"]
+    depends_on:
+      init: { condition: service_completed_successfully }
+
+  worker:
+    build: .
+    environment: *app-env
+    command: ["uvicorn", "app.worker.main:app", "--host", "0.0.0.0", "--port", "8081"]
+    ports: ["8081:8081"]
+    volumes: ["./samples/recorded:/srv/samples/recorded"]
+    depends_on:
+      init: { condition: service_completed_successfully }
