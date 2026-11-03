@@ -1,0 +1,23 @@
+# Build the image, run migrations, deploy both services. Triggered on push to main.
+steps:
+  - name: gcr.io/cloud-builders/docker
+    args: ["build", "-t", "${_IMAGE}:${SHORT_SHA}", "-t", "${_IMAGE}:latest", "."]
+  - name: gcr.io/cloud-builders/docker
+    args: ["push", "--all-tags", "${_IMAGE}"]
+  - name: gcr.io/google.com/cloudsdktool/cloud-sdk
+    entrypoint: gcloud
+    args: ["run", "jobs", "update", "riverbend-migrate", "--image", "${_IMAGE}:${SHORT_SHA}", "--region", "${_REGION}"]
+  - name: gcr.io/google.com/cloudsdktool/cloud-sdk
+    entrypoint: gcloud
+    args: ["run", "jobs", "execute", "riverbend-migrate", "--region", "${_REGION}", "--wait"]
+  - name: gcr.io/google.com/cloudsdktool/cloud-sdk
+    entrypoint: gcloud
+    args: ["run", "services", "update", "riverbend-worker", "--image", "${_IMAGE}:${SHORT_SHA}", "--region", "${_REGION}"]
+  - name: gcr.io/google.com/cloudsdktool/cloud-sdk
+    entrypoint: gcloud
+    args: ["run", "services", "update", "riverbend-api", "--image", "${_IMAGE}:${SHORT_SHA}", "--region", "${_REGION}"]
+substitutions:
+  _REGION: europe-west1
+  _IMAGE: europe-west1-docker.pkg.dev/${PROJECT_ID}/riverbend/workorders
+options:
+  logging: CLOUD_LOGGING_ONLY

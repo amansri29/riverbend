@@ -5,10 +5,12 @@ Secrets are never read from files in the repo; see .env.example for the full lis
 
 from __future__ import annotations
 
+import os
 from functools import lru_cache
+from string import Template
 from typing import Literal
 
-from pydantic import SecretStr
+from pydantic import SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -19,6 +21,10 @@ class Settings(BaseSettings):
     database_url: str = "postgresql://riverbend_app:riverbend_app@localhost:5432/riverbend"
     migration_database_url: str = "postgresql://postgres:postgres@localhost:5432/riverbend"
     app_db_password: str = "riverbend_app"
+    # Templates with ${VAR} placeholders expanded from the environment (used on Cloud Run, where
+    # Secret Manager injects passwords as separate variables). Take precedence when set.
+    database_url_template: str | None = None
+    migration_database_url_template: str | None = None
 
     # LLM provider
     llm_provider: Literal["azure", "fake"] = "fake"
@@ -57,6 +63,14 @@ class Settings(BaseSettings):
     # Misc
     catalog_path: str = "catalog/catalog.json"
     dev_api_keys: bool = True  # seed deterministic dev keys (dev-key-<shop_id>)
+
+    @model_validator(mode="after")
+    def _expand_url_templates(self) -> Settings:
+        if self.database_url_template:
+            self.database_url = Template(self.database_url_template).safe_substitute(os.environ)
+        if self.migration_database_url_template:
+            self.migration_database_url = Template(self.migration_database_url_template).safe_substitute(os.environ)
+        return self
 
     @property
     def llm_price_input_micros_per_token(self) -> float:

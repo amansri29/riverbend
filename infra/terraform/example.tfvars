@@ -1,0 +1,7 @@
+project_id               = "my-gcp-project"
+region                   = "europe-west1"
+image                    = "europe-west1-docker.pkg.dev/my-gcp-project/riverbend/workorders:latest"
+alert_email              = "oncall@example.com"
+azure_openai_endpoint    = "https://my-resource.openai.azure.com"
+azure_openai_deployment  = "gpt-4o"
+azure_openai_api_version = "2024-10-21"

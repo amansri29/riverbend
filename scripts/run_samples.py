@@ -118,12 +118,13 @@ def main() -> int:
             (m["n"], m["message_id"], m["shop_id"], outcome, services, total, str(date), asked, replied, s["status"])
         )
 
-    c = Counter(r[3].split(" ")[0] for r in rows)
+    c = Counter(r[3].split(" ")[0] for r in rows if not r[3].startswith("duplicate"))
     spend = sum(float(v["llm"]["cost_usd"]) for v in views.values())
     calls = sum(v["llm"]["calls"] for v in views.values())
     invalid = sum(v["llm"]["invalid_output"] for v in views.values())
     failures = sum(v["llm"]["provider_failures"] for v in views.values())
     no_order = sum(1 for r in rows if r[9] in ("answered", "cancellation_received"))
+    resolved = sum(1 for k in sent_replies if orders.get(k, {}).get("status") == "open")
 
     lines = [
         "# Results: 40 sample messages",
@@ -134,8 +135,8 @@ def main() -> int:
         "|---|---|",
         f"| Messages sent | {len(messages)} ({len(unique)} unique, {len(messages) - len(unique)} duplicate) |",
         f"| Work orders open | {c.get('open', 0)} |",
-        f"| Follow-up questions asked | {sum(1 for r in rows if r[7])} |",
-        f"| Follow-ups resolved by a scripted reply | {sum(1 for r in rows if r[8] and r[3].startswith('open'))} |",
+        f"| Follow-up questions asked | {sum(1 for k, s in first.items() if s['status'] == 'awaiting_your_reply')} |",
+        f"| Follow-ups resolved by a scripted reply | {resolved} |",
         f"| Needs staff review | {c.get('needs_review', 0)} |",
         f"| Awaiting customer (no scripted reply) | {c.get('awaiting_customer', 0)} |",
         f"| No work order (price inquiry / cancellation) | {no_order} |",
