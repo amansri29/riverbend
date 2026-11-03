@@ -6,5 +6,8 @@ Honest record of time spent, as the brief asks. Planning with an AI assistant co
 |---|---|---|
 | 2026-11-03 | Read brief, architecture discussion and decisions (queue, tenancy, follow-up, framework) | 1.5 |
 | 2026-11-03 | Scaffold, catalog, samples, decisions file | 0.5 |
+| 2026-11-03 | Schema + RLS, core modules, providers, API, worker, dispatchers, Compose | 1.5 |
+| 2026-11-03 | Tests (78), cap-fix found by a test, native run through the Pub/Sub emulator, outage demo | 1.0 |
+| 2026-11-03 | Terraform, Cloud Build, architecture note, not-built, GCP plan, README | 1.0 |
 
-Running total: 2.0 h
+Running total: 5.5 h (pending: Compose run, Azure run + results table, Loom)

@@ -137,11 +137,13 @@ async def list_work_orders(
         b = await budget.status(conn, t.shop.id, month, t.shop.monthly_cap_micros)
         llm = await llm_calls.totals(conn, t.shop.id)
         cur = await conn.execute(
-            "SELECT count(*) AS n FROM llm_calls WHERE shop_id = %s AND outcome IN ('provider_error','timeout') "
-            "AND created_at > %s",
+            "SELECT count(*) FILTER (WHERE outcome IN ('provider_error', 'timeout')) AS failures, "
+            "count(*) FILTER (WHERE outcome IN ('ok', 'invalid_output')) AS successes "
+            "FROM llm_calls WHERE shop_id = %s AND created_at > %s",
             (t.shop.id, now - timedelta(minutes=5)),
         )
-        recent_failures = int((await cur.fetchone())["n"])
+        recent = await cur.fetchone()
+        recent_failures, recent_successes = int(recent["failures"]), int(recent["successes"])
     async with db.tx() as conn:
         waiting = await jobs.waiting_count(conn, t.shop.id)
         cur = await conn.execute(
@@ -158,7 +160,9 @@ async def list_work_orders(
         estimated_total=money(sum(r["estimated_total_cents"] or 0 for r in rows)),
         work_orders=orders,
         ai=AiStatusOut(
-            degraded=parked_provider > 0 or recent_failures >= settings.breaker_failure_threshold,
+            # Degraded: jobs are parked for an outage, or the last five minutes look worse than they look good.
+            degraded=parked_provider > 0
+            or (recent_failures >= settings.breaker_failure_threshold and recent_failures > recent_successes),
             waiting=sum(waiting.values()),
             parked_provider_outage=parked_provider,
             parked_budget_cap=parked.get("budget_exceeded", 0),
