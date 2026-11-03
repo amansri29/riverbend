@@ -59,8 +59,14 @@ class InlineDispatcher:
     """Emulates the broker's retry policy in-process: redeliver on RETRY, give up after
     max_attempts (the DLQ handler marks the job failed)."""
 
-    def __init__(self, run_job: RunJob, dead_letter: Callable[[UUID], Awaitable[None]],
-                 *, max_attempts: int = 5, backoff_seconds: float = 0.2) -> None:
+    def __init__(
+        self,
+        run_job: RunJob,
+        dead_letter: Callable[[UUID], Awaitable[None]],
+        *,
+        max_attempts: int = 5,
+        backoff_seconds: float = 0.2,
+    ) -> None:
         self._run_job = run_job
         self._dead_letter = dead_letter
         self._max_attempts = max_attempts

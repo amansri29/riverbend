@@ -58,7 +58,7 @@ class AzureOpenAIProvider:
             )
         except openai.APITimeoutError as e:
             raise ProviderTimeout(str(e)) from e
-        except openai.LengthFinishReasonError as e:
+        except openai.LengthFinishReasonError:
             # Output truncated: the schema cannot have been completed. Treat as invalid output.
             latency = int((time.perf_counter() - started) * 1000)
             return ProviderResult(None, "", Usage(0, max_output_tokens), self._deployment, latency, "length")

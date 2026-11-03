@@ -26,8 +26,14 @@ class CustomerStatus(BaseModel):
     message_id: str
     received_at: datetime
     status: Literal[
-        "received", "awaiting_your_reply", "confirmed", "in_review", "answered",
-        "cancellation_received", "could_not_process", "expired",
+        "received",
+        "awaiting_your_reply",
+        "confirmed",
+        "in_review",
+        "answered",
+        "cancellation_received",
+        "could_not_process",
+        "expired",
     ]
     message: str
     question: str | None = None
@@ -55,6 +61,7 @@ class EstimateOut(BaseModel):
 
 class WorkOrderOut(BaseModel):
     id: str
+    message_id: str | None = None  # the sender's id of the source message
     status: str
     review_reason: str | None
     source_message_id: str
@@ -90,6 +97,16 @@ class AiStatusOut(BaseModel):
     recent_provider_failures: int
 
 
+class LlmTotalsOut(BaseModel):
+    calls: int
+    input_tokens: int
+    output_tokens: int
+    cost_usd: str
+    ok: int
+    invalid_output: int
+    provider_failures: int
+
+
 class WorkOrderList(BaseModel):
     shop_id: str
     status: str | None
@@ -98,6 +115,7 @@ class WorkOrderList(BaseModel):
     work_orders: list[WorkOrderOut]
     ai: AiStatusOut
     budget: BudgetOut
+    llm: LlmTotalsOut
     order_counts: dict[str, int]
     message_outcomes: dict[str, int]
 
@@ -110,12 +128,17 @@ def micros_to_usd(micros: int) -> str:
     return f"{micros / 1_000_000:.4f}"
 
 
-def estimate_out(line_items: list[dict], total_cents: int | None, requires_inspection: bool, catalog_version: str) -> EstimateOut:
+def estimate_out(
+    line_items: list[dict], total_cents: int | None, requires_inspection: bool, catalog_version: str
+) -> EstimateOut:
     return EstimateOut(
         line_items=[
             LineItemOut(
-                code=i["code"], name=i["name"], quantity=i["quantity"],
-                unit_price=money(i["unit_price_cents"]), line_total=money(i["line_total_cents"]),
+                code=i["code"],
+                name=i["name"],
+                quantity=i["quantity"],
+                unit_price=money(i["unit_price_cents"]),
+                line_total=money(i["line_total_cents"]),
                 requires_inspection=i["requires_inspection"],
             )
             for i in line_items

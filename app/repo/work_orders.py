@@ -57,13 +57,16 @@ async def get_by_source(conn: AsyncConnection, shop_id: str, message_pk: UUID) -
 
 
 async def list_by_status(conn: AsyncConnection, shop_id: str, status: str | None) -> list[dict]:
-    if status:
-        cur = await conn.execute(
-            f"SELECT {COLS} FROM work_orders WHERE shop_id = %s AND status = %s ORDER BY created_at",
-            (shop_id, status),
-        )
-    else:
-        cur = await conn.execute(f"SELECT {COLS} FROM work_orders WHERE shop_id = %s ORDER BY created_at", (shop_id,))
+    """Rows carry `message_id` (the sender's id of the source message) for display."""
+    qualified = ", ".join(f"w.{c.strip()}" for c in COLS.split(","))
+    where = "w.shop_id = %s" + (" AND w.status = %s" if status else "")
+    params = (shop_id, status) if status else (shop_id,)
+    cur = await conn.execute(
+        f"SELECT {qualified}, m.message_id FROM work_orders w "
+        f"JOIN inbound_messages m ON m.shop_id = w.shop_id AND m.id = w.source_message_id "
+        f"WHERE {where} ORDER BY w.created_at",
+        params,
+    )
     return await cur.fetchall()
 
 
@@ -83,9 +86,7 @@ async def add_amendment(conn: AsyncConnection, shop_id: str, order_id: UUID, ame
     return await cur.fetchone()
 
 
-async def find_open_by_customer_name(
-    conn: AsyncConnection, shop_id: str, name: str, since: datetime
-) -> list[dict]:
+async def find_open_by_customer_name(conn: AsyncConnection, shop_id: str, name: str, since: datetime) -> list[dict]:
     cur = await conn.execute(
         f"SELECT {COLS} FROM work_orders WHERE shop_id = %s AND status IN ('open', 'awaiting_customer') "
         f"AND lower(customer_name) = lower(%s) AND created_at >= %s ORDER BY created_at",

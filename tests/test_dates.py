@@ -34,9 +34,7 @@ def test_relative_days(received_at):
 
 
 def test_part_of_day_and_time_become_note(received_at):
-    r = resolve(
-        date_expr(kind="weekday", weekday="thursday", part_of_day="morning", time="10:00"), received_at
-    )
+    r = resolve(date_expr(kind="weekday", weekday="thursday", part_of_day="morning", time="10:00"), received_at)
     assert r.date == date(2026, 9, 24)
     assert r.note == "morning, 10:00"
 

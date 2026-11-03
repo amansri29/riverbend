@@ -32,9 +32,7 @@ async def get_by_api_key(conn: AsyncConnection, api_key: str) -> Shop | None:
 
 
 async def get(conn: AsyncConnection, shop_id: str) -> Shop | None:
-    cur = await conn.execute(
-        "SELECT id, name, timezone, monthly_cap_micros FROM shops WHERE id = %s", (shop_id,)
-    )
+    cur = await conn.execute("SELECT id, name, timezone, monthly_cap_micros FROM shops WHERE id = %s", (shop_id,))
     r = await cur.fetchone()
     return _row(r) if r else None
 

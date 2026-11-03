@@ -5,8 +5,8 @@ from __future__ import annotations
 
 from google.api_core.exceptions import AlreadyExists
 from google.cloud import pubsub_v1
-from google.pubsub_v1.types import DeadLetterPolicy, PushConfig, RetryPolicy
 from google.protobuf.duration_pb2 import Duration
+from google.pubsub_v1.types import DeadLetterPolicy, PushConfig, RetryPolicy
 
 from app.config import get_settings
 

@@ -72,11 +72,7 @@ class Turn:
 
 
 def _wrap(body: str, channel: str, received_at: datetime) -> str:
-    return (
-        f'<customer_message channel="{channel}" received="{received_at.isoformat()}">\n'
-        f"{body}\n"
-        f"</customer_message>"
-    )
+    return f'<customer_message channel="{channel}" received="{received_at.isoformat()}">\n{body}\n</customer_message>'
 
 
 def build_turns(

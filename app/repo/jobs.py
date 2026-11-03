@@ -85,8 +85,7 @@ async def release_for_retry(conn: AsyncConnection, job_id: UUID, error: str) -> 
 async def park(conn: AsyncConnection, job_id: UUID, reason: str, run_after: datetime | None) -> None:
     """Leave the broker (we ack) and wait for the sweeper. run_after=None means 'until released'."""
     await conn.execute(
-        "UPDATE jobs SET status = 'parked', park_reason = %s, run_after = %s, updated_at = now() "
-        "WHERE id = %s",
+        "UPDATE jobs SET status = 'parked', park_reason = %s, run_after = %s, updated_at = now() WHERE id = %s",
         (reason, run_after, job_id),
     )
 

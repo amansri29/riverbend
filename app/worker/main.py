@@ -22,8 +22,13 @@ from app.worker.sweeper import sweep_once
 log = logging.getLogger("worker")
 
 
-def create_worker_app(settings: Settings | None = None, *, db: Database | None = None,
-                      provider: LLMProvider | None = None, dispatcher: Dispatcher | None = None) -> FastAPI:
+def create_worker_app(
+    settings: Settings | None = None,
+    *,
+    db: Database | None = None,
+    provider: LLMProvider | None = None,
+    dispatcher: Dispatcher | None = None,
+) -> FastAPI:
     settings = settings or get_settings()
     applog.configure()
 

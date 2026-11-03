@@ -3,12 +3,14 @@ from __future__ import annotations
 from datetime import UTC, datetime, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi.responses import JSONResponse
 
 from app.api.deps import Tenant, get_db, tenant
 from app.api.schemas import (
     AiStatusOut,
     BudgetOut,
     CustomerStatus,
+    LlmTotalsOut,
     MessageAccepted,
     MessageIn,
     WorkOrderList,
@@ -19,7 +21,7 @@ from app.api.schemas import (
 )
 from app.db import Database
 from app.ingest import UnknownReference, accept_message, normalise_received_at
-from app.repo import budget, jobs, messages, work_orders
+from app.repo import budget, jobs, llm_calls, messages, work_orders
 from app.repo.budget import current_month
 
 router = APIRouter()
@@ -52,7 +54,8 @@ async def post_message(request: Request, payload: MessageIn, t: Tenant = Depends
     status_url = str(request.url_for("get_message_status", shop_id=t.shop.id, message_id=payload.message_id))
     if not result.created:
         # Idempotent: the same message again is not an error, and it is not a second work order.
-        return MessageAccepted(message_id=payload.message_id, duplicate=True, status_url=status_url)
+        body = MessageAccepted(message_id=payload.message_id, duplicate=True, status_url=status_url)
+        return JSONResponse(status_code=200, content=body.model_dump())
     return MessageAccepted(message_id=payload.message_id, duplicate=False, status_url=status_url)
 
 
@@ -75,26 +78,42 @@ def _customer_status(msg: dict, root: dict, order: dict | None) -> CustomerStatu
     base = dict(message_id=msg["message_id"], received_at=msg["received_at"])
     outcome = msg["outcome"]
     if outcome in ("rejected_invalid_output", "failed"):
-        return CustomerStatus(**base, status="could_not_process",
-                              message="We couldn't process this automatically. A staff member will follow up.")
+        return CustomerStatus(
+            **base,
+            status="could_not_process",
+            message="We couldn't process this automatically. A staff member will follow up.",
+        )
     if outcome == "no_work_order" and msg.get("outcome_detail", "").startswith("price_inquiry"):
         return CustomerStatus(**base, status="answered", message=msg["outcome_detail"])
     if outcome in ("cancellation_flagged",):
-        return CustomerStatus(**base, status="cancellation_received",
-                              message="We received your cancellation request. A staff member will confirm.")
+        return CustomerStatus(
+            **base,
+            status="cancellation_received",
+            message="We received your cancellation request. A staff member will confirm.",
+        )
     if order is None:
-        return CustomerStatus(**base, status="received",
-                              message="We received your message and will confirm shortly.")
+        return CustomerStatus(**base, status="received", message="We received your message and will confirm shortly.")
     st = order["status"]
-    est = estimate_out(order["line_items"], order["estimated_total_cents"], order["requires_inspection"],
-                       order["catalog_version"])
+    est = estimate_out(
+        order["line_items"], order["estimated_total_cents"], order["requires_inspection"], order["catalog_version"]
+    )
     if st == "awaiting_customer":
-        return CustomerStatus(**base, status="awaiting_your_reply", message="We have one question before we can confirm.",
-                              question=order["clarification_question"])
+        return CustomerStatus(
+            **base,
+            status="awaiting_your_reply",
+            message="We have one question before we can confirm.",
+            question=order["clarification_question"],
+        )
     if st == "open":
         note = " Final price confirmed after inspection." if order["requires_inspection"] else ""
-        return CustomerStatus(**base, status="confirmed", message=f"Your request is booked as an estimate.{note}",
-                              estimate=est, requested_date=order["requested_date"], date_note=order["date_note"])
+        return CustomerStatus(
+            **base,
+            status="confirmed",
+            message=f"Your request is booked as an estimate.{note}",
+            estimate=est,
+            requested_date=order["requested_date"],
+            date_note=order["date_note"],
+        )
     if st == "expired":
         return CustomerStatus(**base, status="expired", message="We didn't hear back; please send a new message.")
     return CustomerStatus(**base, status="in_review", message="A staff member will follow up with you.")
@@ -116,6 +135,7 @@ async def list_work_orders(
         counts = await work_orders.status_counts(conn, t.shop.id)
         outcomes = await messages.outcome_counts(conn, t.shop.id)
         b = await budget.status(conn, t.shop.id, month, t.shop.monthly_cap_micros)
+        llm = await llm_calls.totals(conn, t.shop.id)
         cur = await conn.execute(
             "SELECT count(*) AS n FROM llm_calls WHERE shop_id = %s AND outcome IN ('provider_error','timeout') "
             "AND created_at > %s",
@@ -145,8 +165,20 @@ async def list_work_orders(
             recent_provider_failures=recent_failures,
         ),
         budget=BudgetOut(
-            month=b.month, cap_usd=micros_to_usd(b.cap_micros), spent_usd=micros_to_usd(b.spent_micros),
-            reserved_usd=micros_to_usd(b.reserved_micros), exhausted=b.exhausted,
+            month=b.month,
+            cap_usd=micros_to_usd(b.cap_micros),
+            spent_usd=micros_to_usd(b.spent_micros),
+            reserved_usd=micros_to_usd(b.reserved_micros),
+            exhausted=b.exhausted,
+        ),
+        llm=LlmTotalsOut(
+            calls=llm["calls"],
+            input_tokens=llm["input_tokens"],
+            output_tokens=llm["output_tokens"],
+            cost_usd=micros_to_usd(llm["cost_micros"]),
+            ok=llm["ok"],
+            invalid_output=llm["invalid_output"],
+            provider_failures=llm["provider_failures"],
         ),
         order_counts=counts,
         message_outcomes=outcomes,
@@ -165,11 +197,25 @@ async def get_work_order(order_id: str, request: Request, t: Tenant = Depends(te
 
 def _order_out(r: dict) -> WorkOrderOut:
     return WorkOrderOut(
-        id=str(r["id"]), status=r["status"], review_reason=r["review_reason"],
-        source_message_id=str(r["source_message_id"]), customer_name=r["customer_name"], language=r["language"],
-        bike_type=r["bike_type"], bike_count=r["bike_count"], issues=r["issues"], urgency=r["urgency"],
-        requested_date=r["requested_date"], date_note=r["date_note"],
-        estimate=estimate_out(r["line_items"], r["estimated_total_cents"], r["requires_inspection"], r["catalog_version"]),
-        clarification_question=r["clarification_question"], questions_asked=r["questions_asked"],
-        amendments=r["amendments"], created_at=r["created_at"], updated_at=r["updated_at"],
+        id=str(r["id"]),
+        message_id=r.get("message_id"),
+        status=r["status"],
+        review_reason=r["review_reason"],
+        source_message_id=str(r["source_message_id"]),
+        customer_name=r["customer_name"],
+        language=r["language"],
+        bike_type=r["bike_type"],
+        bike_count=r["bike_count"],
+        issues=r["issues"],
+        urgency=r["urgency"],
+        requested_date=r["requested_date"],
+        date_note=r["date_note"],
+        estimate=estimate_out(
+            r["line_items"], r["estimated_total_cents"], r["requires_inspection"], r["catalog_version"]
+        ),
+        clarification_question=r["clarification_question"],
+        questions_asked=r["questions_asked"],
+        amendments=r["amendments"],
+        created_at=r["created_at"],
+        updated_at=r["updated_at"],
     )

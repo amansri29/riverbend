@@ -30,9 +30,19 @@ async def record(
         VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         """,
         (
-            shop_id, job_id, message_pk, provider, model, input_tokens, output_tokens, cost_micros,
-            latency_ms, outcome, Jsonb(validation_errors) if validation_errors is not None else None,
-            raw_output, attempt,
+            shop_id,
+            job_id,
+            message_pk,
+            provider,
+            model,
+            input_tokens,
+            output_tokens,
+            cost_micros,
+            latency_ms,
+            outcome,
+            Jsonb(validation_errors) if validation_errors is not None else None,
+            raw_output,
+            attempt,
         ),
     )
 

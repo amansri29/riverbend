@@ -14,8 +14,9 @@ from app.db import Database
 from app.dispatch import Dispatcher, InlineDispatcher, PubSubDispatcher
 
 
-def create_app(settings: Settings | None = None, *, db: Database | None = None,
-               dispatcher: Dispatcher | None = None) -> FastAPI:
+def create_app(
+    settings: Settings | None = None, *, db: Database | None = None, dispatcher: Dispatcher | None = None
+) -> FastAPI:
     settings = settings or get_settings()
     applog.configure()
 

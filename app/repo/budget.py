@@ -46,13 +46,14 @@ async def reserve(
     conn: AsyncConnection, *, shop_id: str, month: date, cap_micros: int, job_id: UUID, attempt: int, micros: int
 ) -> bool:
     await ensure_row(conn, shop_id, month, cap_micros)
+    # cap_micros comes from the shops table on every call: raising a shop's cap takes effect at once.
     cur = await conn.execute(
         """
-        UPDATE shop_budgets SET reserved_micros = reserved_micros + %s
-        WHERE shop_id = %s AND month = %s AND spent_micros + reserved_micros + %s <= cap_micros
+        UPDATE shop_budgets SET reserved_micros = reserved_micros + %s, cap_micros = %s
+        WHERE shop_id = %s AND month = %s AND spent_micros + reserved_micros + %s <= %s
         RETURNING cap_micros
         """,
-        (micros, shop_id, month, micros),
+        (micros, cap_micros, shop_id, month, micros, cap_micros),
     )
     if await cur.fetchone() is None:
         return False
@@ -64,7 +65,9 @@ async def reserve(
     return True
 
 
-async def _take_reservation(conn: AsyncConnection, shop_id: str, job_id: UUID, attempt: int, new_status: str) -> dict | None:
+async def _take_reservation(
+    conn: AsyncConnection, shop_id: str, job_id: UUID, attempt: int, new_status: str
+) -> dict | None:
     cur = await conn.execute(
         "UPDATE budget_reservations SET status = %s WHERE shop_id = %s AND job_id = %s AND attempt = %s "
         "AND status = 'reserved' RETURNING month, micros",
@@ -95,18 +98,12 @@ async def release(conn: AsyncConnection, *, shop_id: str, job_id: UUID, attempt:
 
 
 async def status(conn: AsyncConnection, shop_id: str, month: date, cap_micros: int) -> BudgetStatus:
+    """cap_micros is the shop's current cap (shops table); the row only tracks spend."""
     cur = await conn.execute(
-        "SELECT cap_micros, spent_micros, reserved_micros FROM shop_budgets WHERE shop_id = %s AND month = %s",
+        "SELECT spent_micros, reserved_micros FROM shop_budgets WHERE shop_id = %s AND month = %s",
         (shop_id, month),
     )
     r = await cur.fetchone()
     if r is None:
         return BudgetStatus(month, cap_micros, 0, 0)
-    return BudgetStatus(month, int(r["cap_micros"]), int(r["spent_micros"]), int(r["reserved_micros"]))
-
-
-async def set_cap(conn: AsyncConnection, shop_id: str, month: date, cap_micros: int) -> None:
-    await ensure_row(conn, shop_id, month, cap_micros)
-    await conn.execute(
-        "UPDATE shop_budgets SET cap_micros = %s WHERE shop_id = %s AND month = %s", (cap_micros, shop_id, month)
-    )
+    return BudgetStatus(month, cap_micros, int(r["spent_micros"]), int(r["reserved_micros"]))

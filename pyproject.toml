@@ -35,8 +35,13 @@ testpaths = ["tests"]
 markers = ["db: needs a Postgres at TEST_DATABASE_URL", "emulator: needs the Pub/Sub emulator"]
 
 [tool.ruff]
-line-length = 100
+line-length = 120
 target-version = "py312"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP"]
+ignore = ["B008"]  # FastAPI Depends()/Header() in defaults is the framework idiom
+
+[tool.ruff.lint.per-file-ignores]
+"app/extraction/prompt.py" = ["E501"]
+"tests/*" = ["E501"]

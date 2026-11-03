@@ -8,6 +8,8 @@ import pytest
 from app.catalog import Catalog, load_catalog
 from app.extraction.schema import DateExpr, Extraction, ServicePick
 
+pytest_plugins = ["tests.helpers"]
+
 TZ = ZoneInfo("America/New_York")
 RECEIVED = datetime(2026, 9, 22, 8, 2, tzinfo=TZ)  # Tuesday, as in the brief
 

@@ -71,8 +71,12 @@ async def accept_message(
         await publish_job(db, dispatcher, job)
     log.info(
         "message accepted" if created else "duplicate message",
-        extra={"shop_id": shop.id, "message_id": message_id, "job_id": str(job["id"]) if job else None,
-               "event": "ingest.accepted" if created else "ingest.duplicate"},
+        extra={
+            "shop_id": shop.id,
+            "message_id": message_id,
+            "job_id": str(job["id"]) if job else None,
+            "event": "ingest.accepted" if created else "ingest.duplicate",
+        },
     )
     return AcceptResult(row, created, job)
 

@@ -32,8 +32,15 @@ CANNED = Extraction(
     urgency="normal",
     urgency_reason=None,
     date=DateExpr(
-        kind="none", relative_days=None, weekday=None, next_week=False, absolute_date=None,
-        month=None, part_of_day=None, time=None, text=None,
+        kind="none",
+        relative_days=None,
+        weekday=None,
+        next_week=False,
+        absolute_date=None,
+        month=None,
+        part_of_day=None,
+        time=None,
+        text=None,
     ),
     question=None,
     missing=["requested_date"],
@@ -53,12 +60,12 @@ class FakeProvider:
         scripted: dict[str, Extraction | ProviderResult] | None = None,
         record_dir: str | None = None,
         fault: str = "",
-        usage: Usage = Usage(900, 180),
+        usage: Usage | None = None,
     ) -> None:
         self.scripted = dict(scripted or {})
         self.record_dir = Path(record_dir) if record_dir else None
         self.fault = fault
-        self.usage = usage
+        self.usage = usage or Usage(900, 180)
         self.calls: list[dict] = []  # captured for assertions (e.g. tenancy of prompts)
 
     async def extract(
@@ -85,9 +92,7 @@ class FakeProvider:
         return self._ok(CANNED)
 
     def _ok(self, x: Extraction) -> ProviderResult:
-        return ProviderResult(
-            parsed=x, raw_text=x.model_dump_json(), usage=self.usage, model="fake", latency_ms=1
-        )
+        return ProviderResult(parsed=x, raw_text=x.model_dump_json(), usage=self.usage, model="fake", latency_ms=1)
 
     def _load_recorded(self, trace_id: str) -> ProviderResult | None:
         if not self.record_dir:
