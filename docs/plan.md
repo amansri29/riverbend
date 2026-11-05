@@ -19,5 +19,5 @@ anything cosmetic.
 - [ ] 9. Azure OpenAI provider with record mode; run the 40 samples; results table
 - [x] 10. Failure demos: duplicate, provider down, budget cap (documented commands)
 - [x] 11. Terraform for GCP + deployment note
-- [ ] 12. Architecture note (2 pages), not-built list, README, time log final
+- [x] 12. Architecture note (2 pages, `make note` checks), not-built list, README assumptions, Loom script; time log final after the Azure run
 - [ ] 13. Loom: pick the override from `ai-decisions-log.md`, record (user)

@@ -64,7 +64,10 @@ async def claim(conn: AsyncConnection, job_id: UUID) -> dict | None:
 
 
 async def complete(conn: AsyncConnection, job_id: UUID) -> None:
-    await conn.execute("UPDATE jobs SET status = 'done', updated_at = now() WHERE id = %s", (job_id,))
+    await conn.execute(
+        "UPDATE jobs SET status = 'done', park_reason = NULL, run_after = NULL, updated_at = now() WHERE id = %s",
+        (job_id,),
+    )
 
 
 async def fail(conn: AsyncConnection, job_id: UUID, error: str) -> None:

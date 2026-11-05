@@ -23,3 +23,6 @@ migrate:        ## Apply SQL migrations + seed shops against MIGRATION_DATABASE_
 
 samples:        ## Send the 40 sample messages, wait, send scripted replies, print the results table
 	uv run python scripts/run_samples.py
+
+note:  ## render docs/architecture.md to PDF and fail if it exceeds two pages
+	uv run --with markdown --with pypdf python scripts/render_note.py
