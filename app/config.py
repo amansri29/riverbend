@@ -33,7 +33,10 @@ class Settings(BaseSettings):
     azure_openai_endpoint: str | None = None
     azure_openai_api_key: SecretStr | None = None
     azure_openai_deployment: str | None = None
+    # "v1" selects the OpenAI-compatible /openai/v1 surface (no api-version; required for the gpt-5 family);
+    # anything else is a classic Azure OpenAI api-version string.
     azure_openai_api_version: str = "2024-10-21"
+    llm_reasoning_effort: Literal["", "minimal", "low", "medium", "high"] = ""  # gpt-5 family only
     llm_price_input_usd_per_1m: float = 2.50
     llm_price_output_usd_per_1m: float = 10.00
     llm_timeout_seconds: float = 20.0

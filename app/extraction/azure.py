@@ -12,7 +12,7 @@ import time
 from pathlib import Path
 
 import openai
-from openai import AsyncAzureOpenAI
+from openai import AsyncAzureOpenAI, AsyncOpenAI
 
 from app.extraction.prompt import Turn
 from app.extraction.provider import (
@@ -39,12 +39,18 @@ class AzureOpenAIProvider:
         deployment: str,
         api_version: str,
         record_dir: str | None = None,
+        reasoning_effort: str = "",
     ) -> None:
-        self._client = AsyncAzureOpenAI(
-            azure_endpoint=endpoint, api_key=api_key, api_version=api_version, max_retries=0
-        )
+        if api_version == "v1":
+            # Azure's OpenAI-compatible surface: same endpoints as OpenAI, no api-version query parameter.
+            self._client = AsyncOpenAI(base_url=endpoint.rstrip("/") + "/openai/v1/", api_key=api_key, max_retries=0)
+        else:
+            self._client = AsyncAzureOpenAI(
+                azure_endpoint=endpoint, api_key=api_key, api_version=api_version, max_retries=0
+            )
         self._deployment = deployment
         self._record_dir = Path(record_dir) if record_dir else None
+        self._extra: dict = {"reasoning_effort": reasoning_effort} if reasoning_effort else {}
 
     async def extract(
         self, *, system: str, turns: list[Turn], timeout_s: float, max_output_tokens: int, trace_id: str
@@ -57,6 +63,7 @@ class AzureOpenAIProvider:
                 response_format=Extraction,
                 max_completion_tokens=max_output_tokens,
                 timeout=timeout_s,
+                **self._extra,
             )
         except openai.APITimeoutError as e:
             raise ProviderTimeoutError(str(e)) from e

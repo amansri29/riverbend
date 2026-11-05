@@ -28,5 +28,6 @@ def build_provider(s: Settings) -> LLMProvider:
             deployment=s.azure_openai_deployment,
             api_version=s.azure_openai_api_version,
             record_dir=s.llm_record_dir or None,
+            reasoning_effort=s.llm_reasoning_effort,
         )
     return FakeProvider(record_dir=s.llm_record_dir or None, fault=s.llm_fault)

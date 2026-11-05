@@ -114,6 +114,7 @@ resource "google_cloud_run_v2_service" "worker" {
           AZURE_OPENAI_ENDPOINT    = var.azure_openai_endpoint
           AZURE_OPENAI_DEPLOYMENT  = var.azure_openai_deployment
           AZURE_OPENAI_API_VERSION = var.azure_openai_api_version
+          LLM_REASONING_EFFORT     = var.llm_reasoning_effort
           LLM_RECORD_DIR           = ""
         })
         content {

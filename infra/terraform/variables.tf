@@ -19,17 +19,23 @@ variable "azure_openai_endpoint" { type = string }
 variable "azure_openai_deployment" { type = string }
 variable "azure_openai_api_version" {
   type    = string
-  default = "2024-10-21"
+  default = "v1" # OpenAI-compatible surface; or a classic api-version string
 }
 variable "llm_price_input_usd_per_1m" {
   type    = string
-  default = "2.50"
+  default = "0.25"
 }
 variable "llm_price_output_usd_per_1m" {
   type    = string
-  default = "10.00"
+  default = "2.00"
 }
 variable "default_monthly_cap_usd" {
   type    = string
   default = "25"
+}
+
+variable "llm_reasoning_effort" {
+  description = "gpt-5 family reasoning effort (minimal|low|medium|high); empty for other models"
+  type        = string
+  default     = "low"
 }
