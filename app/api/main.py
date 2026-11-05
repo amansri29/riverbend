@@ -17,6 +17,7 @@ from app.dispatch import Dispatcher, InlineDispatcher, PubSubDispatcher
 def create_app(
     settings: Settings | None = None, *, db: Database | None = None, dispatcher: Dispatcher | None = None
 ) -> FastAPI:
+    """Build the API app; the database and dispatcher are injectable for tests."""
     settings = settings or get_settings()
     applog.configure()
 

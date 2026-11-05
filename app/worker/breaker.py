@@ -8,6 +8,8 @@ from collections.abc import Callable
 
 
 class CircuitBreaker:
+    """In-process breaker: opens after N consecutive failures, half-opens after a cool-down."""
+
     def __init__(self, *, failure_threshold: int, open_seconds: float, clock: Callable[[], float] = time.monotonic):
         self.failure_threshold = failure_threshold
         self.open_seconds = open_seconds

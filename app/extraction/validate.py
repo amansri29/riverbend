@@ -20,6 +20,7 @@ _TIME = re.compile(r"^([01]\d|2[0-3]):[0-5]\d$")
 
 
 def validate_extraction(x: Extraction, catalog: Catalog, received_at: datetime) -> list[str]:
+    """Business-rule validation after shape validation; returns the list of errors, empty when valid."""
     errors: list[str] = []
 
     for pick in x.services:

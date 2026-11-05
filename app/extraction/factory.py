@@ -1,3 +1,5 @@
+"""Choose the LLM provider from settings."""
+
 from __future__ import annotations
 
 from app.config import Settings
@@ -7,6 +9,7 @@ from app.extraction.provider import LLMProvider
 
 
 def build_provider(s: Settings) -> LLMProvider:
+    """Pick the provider from settings: azure or fake."""
     if s.llm_provider == "azure":
         missing = [
             n

@@ -1,3 +1,5 @@
+"""Request and response models for the API, and the formatting helpers that keep money as strings."""
+
 from __future__ import annotations
 
 from datetime import date, datetime
@@ -7,6 +9,8 @@ from pydantic import BaseModel, Field
 
 
 class MessageIn(BaseModel):
+    """Inbound message body: message_id, channel, optional received_at and in_reply_to."""
+
     message_id: str = Field(min_length=1, max_length=200)
     channel: Literal["email", "web"]
     received_at: datetime | None = None  # naive values are shop-local
@@ -15,6 +19,8 @@ class MessageIn(BaseModel):
 
 
 class MessageAccepted(BaseModel):
+    """Response to POST: the id, whether it was a duplicate, and where to poll."""
+
     message_id: str
     duplicate: bool
     status_url: str
@@ -43,6 +49,8 @@ class CustomerStatus(BaseModel):
 
 
 class LineItemOut(BaseModel):
+    """A priced line in an estimate."""
+
     code: str
     name: str
     quantity: int
@@ -52,6 +60,8 @@ class LineItemOut(BaseModel):
 
 
 class EstimateOut(BaseModel):
+    """Estimated total with line items and the inspection flag."""
+
     currency: str = "USD"
     line_items: list[LineItemOut]
     total: str
@@ -60,6 +70,8 @@ class EstimateOut(BaseModel):
 
 
 class WorkOrderOut(BaseModel):
+    """A work order as the shop sees it."""
+
     id: str
     message_id: str | None = None  # the sender's id of the source message
     status: str
@@ -82,6 +94,8 @@ class WorkOrderOut(BaseModel):
 
 
 class BudgetOut(BaseModel):
+    """The shop's month: cap, spent, reserved, exhausted."""
+
     month: date
     cap_usd: str
     spent_usd: str
@@ -90,6 +104,8 @@ class BudgetOut(BaseModel):
 
 
 class AiStatusOut(BaseModel):
+    """Health of the model path: degraded flag, jobs waiting, jobs parked by cause."""
+
     degraded: bool
     waiting: int
     parked_provider_outage: int
@@ -98,6 +114,8 @@ class AiStatusOut(BaseModel):
 
 
 class LlmTotalsOut(BaseModel):
+    """Lifetime model usage for the shop, from the ledger."""
+
     calls: int
     input_tokens: int
     output_tokens: int
@@ -108,6 +126,8 @@ class LlmTotalsOut(BaseModel):
 
 
 class WorkOrderList(BaseModel):
+    """Shop list response: orders, counts, budget, AI health, model totals."""
+
     shop_id: str
     status: str | None
     count: int
@@ -121,16 +141,19 @@ class WorkOrderList(BaseModel):
 
 
 def money(cents: int | None) -> str:
+    """Format integer cents as a decimal string."""
     return f"{(cents or 0) / 100:.2f}"
 
 
 def micros_to_usd(micros: int) -> str:
+    """Format micro-dollars as a decimal string."""
     return f"{micros / 1_000_000:.4f}"
 
 
 def estimate_out(
     line_items: list[dict], total_cents: int | None, requires_inspection: bool, catalog_version: str
 ) -> EstimateOut:
+    """Build the estimate view from stored line items."""
     return EstimateOut(
         line_items=[
             LineItemOut(

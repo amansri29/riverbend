@@ -10,6 +10,8 @@ from datetime import UTC, datetime
 
 
 class JsonFormatter(logging.Formatter):
+    """One JSON object per log line with the correlation fields."""
+
     def format(self, record: logging.LogRecord) -> str:
         payload = {
             "ts": datetime.now(UTC).isoformat(timespec="milliseconds"),
@@ -26,6 +28,7 @@ class JsonFormatter(logging.Formatter):
 
 
 def configure(level: str = "INFO") -> None:
+    """Install JSON logging on the root logger."""
     root = logging.getLogger()
     root.handlers.clear()
     h = logging.StreamHandler(sys.stdout)

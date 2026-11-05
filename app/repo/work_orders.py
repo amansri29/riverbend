@@ -1,3 +1,5 @@
+"""Work orders: idempotent on the source message, scoped by row-level security."""
+
 from __future__ import annotations
 
 import json
@@ -34,6 +36,7 @@ async def create(conn: AsyncConnection, *, shop_id: str, source_message_id: UUID
 
 
 async def update(conn: AsyncConnection, shop_id: str, order_id: UUID, **fields) -> dict:
+    """Update the given columns and return the row."""
     sets = ", ".join(f"{k} = %s" for k in fields) + ", updated_at = now()"
     cur = await conn.execute(
         f"UPDATE work_orders SET {sets} WHERE shop_id = %s AND id = %s RETURNING {COLS}",
@@ -45,11 +48,13 @@ async def update(conn: AsyncConnection, shop_id: str, order_id: UUID, **fields) 
 
 
 async def get(conn: AsyncConnection, shop_id: str, order_id: UUID) -> dict | None:
+    """Fetch an order by id."""
     cur = await conn.execute(f"SELECT {COLS} FROM work_orders WHERE shop_id = %s AND id = %s", (shop_id, order_id))
     return await cur.fetchone()
 
 
 async def get_by_source(conn: AsyncConnection, shop_id: str, message_pk: UUID) -> dict | None:
+    """Fetch the order created from a message, if any."""
     cur = await conn.execute(
         f"SELECT {COLS} FROM work_orders WHERE shop_id = %s AND source_message_id = %s", (shop_id, message_pk)
     )
@@ -71,6 +76,7 @@ async def list_by_status(conn: AsyncConnection, shop_id: str, status: str | None
 
 
 async def status_counts(conn: AsyncConnection, shop_id: str) -> dict[str, int]:
+    """Orders per status for a shop."""
     cur = await conn.execute(
         "SELECT status, count(*) AS n FROM work_orders WHERE shop_id = %s GROUP BY status", (shop_id,)
     )
@@ -78,6 +84,7 @@ async def status_counts(conn: AsyncConnection, shop_id: str) -> dict[str, int]:
 
 
 async def add_amendment(conn: AsyncConnection, shop_id: str, order_id: UUID, amendment: dict) -> dict:
+    """Append a customer amendment to the order's history."""
     cur = await conn.execute(
         f"UPDATE work_orders SET amendments = amendments || %s::jsonb, updated_at = now() "
         f"WHERE shop_id = %s AND id = %s RETURNING {COLS}",
@@ -87,6 +94,7 @@ async def add_amendment(conn: AsyncConnection, shop_id: str, order_id: UUID, ame
 
 
 async def find_open_by_customer_name(conn: AsyncConnection, shop_id: str, name: str, since: datetime) -> list[dict]:
+    """Open or pending orders by stated customer name since a time (cancellation matching)."""
     cur = await conn.execute(
         f"SELECT {COLS} FROM work_orders WHERE shop_id = %s AND status IN ('open', 'awaiting_customer') "
         f"AND lower(customer_name) = lower(%s) AND created_at >= %s ORDER BY created_at",
@@ -96,6 +104,7 @@ async def find_open_by_customer_name(conn: AsyncConnection, shop_id: str, name: 
 
 
 async def expire_stale(conn: AsyncConnection, shop_id: str, *, older_than_days: int) -> int:
+    """Expire orders awaiting a reply older than the given days; returns the count."""
     cur = await conn.execute(
         "UPDATE work_orders SET status = 'expired', updated_at = now() "
         "WHERE shop_id = %s AND status = 'awaiting_customer' "

@@ -22,7 +22,7 @@ from app.db import Database
 from app.decide import AskCustomer, CreateOrder, NeedsReview, NoOrder, OrderState, decide
 from app.extraction.factory import build_provider
 from app.extraction.prompt import Turn, build_system_prompt, build_turns
-from app.extraction.provider import LLMProvider, ProviderError, ProviderResult, ProviderTimeout
+from app.extraction.provider import LLMProvider, ProviderError, ProviderResult, ProviderTimeoutError
 from app.extraction.schema import Extraction
 from app.extraction.validate import validate_extraction
 from app.pricing import Estimate, estimate
@@ -34,6 +34,8 @@ log = logging.getLogger("pipeline")
 
 
 class JobResult(StrEnum):
+    """What a run tells the push handler: DONE and SKIPPED ack, PARKED acks and leaves the broker, RETRY is a 503."""
+
     DONE = "DONE"  # ack
     SKIPPED = "SKIPPED"  # ack: nothing to do (already processed, or someone else holds it)
     PARKED = "PARKED"  # ack: left the broker on purpose; the sweeper will republish
@@ -42,6 +44,8 @@ class JobResult(StrEnum):
 
 @dataclass
 class Pipeline:
+    """The per-job stages: claim, tenant tx, breaker, budget, model, validate, decide, price, write, settle."""
+
     db: Database
     provider: LLMProvider
     catalog: Catalog
@@ -164,7 +168,7 @@ class Pipeline:
                         output_tokens=0,
                         cost_micros=0,
                         latency_ms=0,
-                        outcome="timeout" if isinstance(e, ProviderTimeout) else "provider_error",
+                        outcome="timeout" if isinstance(e, ProviderTimeoutError) else "provider_error",
                         validation_errors=[str(e)],
                         raw_output=None,
                         attempt=job["attempts"],
@@ -434,6 +438,7 @@ def build_pipeline(
     provider: LLMProvider | None = None,
     breaker: CircuitBreaker | None = None,
 ) -> Pipeline:
+    """Wire a Pipeline from settings with the real or an injected provider and breaker."""
     return Pipeline(
         db=db,
         provider=provider or build_provider(settings),

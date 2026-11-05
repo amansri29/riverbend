@@ -20,6 +20,8 @@ Urgency = Literal["normal", "urgent"]
 
 
 class StrictModel(BaseModel):
+    """Base for the model-facing schema: strict, no extra fields, so output is accepted or rejected whole."""
+
     model_config = ConfigDict(extra="forbid")
 
 
@@ -38,12 +40,16 @@ class DateExpr(StrictModel):
 
 
 class ServicePick(StrictModel):
+    """A catalog code the model picked, with quantity and the customer's words as evidence."""
+
     code: str  # must be a catalog code; validated in code
     quantity: int  # per-wheel services: number of wheels
     evidence: str  # the words in the message that justify this pick
 
 
 class Extraction(StrictModel):
+    """The full structured output of one model call; shape-validated here, business rules in validate.py."""
+
     outcome: Outcome
     flag_reason: FlagReason | None
     flag_detail: str | None

@@ -13,10 +13,13 @@ from app.repo.shops import Shop
 
 @dataclass(frozen=True)
 class Tenant:
+    """The resolved shop for a request, available to handlers as a dependency."""
+
     shop: Shop
 
 
 def get_db(request: Request) -> Database:
+    """Fetch the database pool from app state."""
     return request.app.state.db
 
 
@@ -26,6 +29,7 @@ async def tenant(
     x_api_key: str | None = Header(default=None, alias="X-API-Key"),
     db: Database = Depends(get_db),
 ) -> Tenant:
+    """Resolve the shop from X-API-Key and require it to match the path: 401 if missing, 404 otherwise."""
     if not x_api_key:
         raise HTTPException(status_code=401, detail="missing X-API-Key")
     async with db.tx() as conn:

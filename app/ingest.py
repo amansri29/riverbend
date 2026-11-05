@@ -16,18 +16,23 @@ from app.repo.shops import Shop
 log = logging.getLogger("ingest")
 
 
-class UnknownReference(Exception):
+class UnknownReferenceError(Exception):
+    """A reply names an in_reply_to message that does not exist in this shop."""
+
     pass
 
 
 @dataclass(frozen=True)
 class AcceptResult:
+    """Outcome of accepting a message: the stored row, whether it was new, and the enqueued job if any."""
+
     message: dict
     created: bool
     job: dict | None
 
 
 def normalise_received_at(received_at: datetime | None, shop: Shop, now: datetime) -> datetime:
+    """Default a missing timestamp to now and attach the shop's time zone to a naive one."""
     if received_at is None:
         return now
     if received_at.tzinfo is None:
@@ -46,12 +51,13 @@ async def accept_message(
     body: str,
     in_reply_to: str | None,
 ) -> AcceptResult:
+    """Store the message and its outbox job in one transaction, then publish after commit."""
     async with db.tenant_tx(shop.id) as conn:
         parent_pk = None
         if in_reply_to:
             parent = await messages.get_by_message_id(conn, shop.id, in_reply_to)
             if parent is None:  # under RLS, another shop's message is simply not there
-                raise UnknownReference(in_reply_to)
+                raise UnknownReferenceError(in_reply_to)
             parent_pk = parent["id"]
         row, created = await messages.insert(
             conn,

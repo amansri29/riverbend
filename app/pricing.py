@@ -12,11 +12,15 @@ MAX_QUANTITY = 4
 
 
 class PricingError(ValueError):
+    """A pick the catalog cannot price: unknown code or quantity out of bounds."""
+
     pass
 
 
 @dataclass(frozen=True)
 class LineItem:
+    """One priced catalog line: code, name, unit price, quantity, line total, inspection flag."""
+
     code: str
     name: str
     quantity: int
@@ -30,6 +34,8 @@ class LineItem:
 
 @dataclass(frozen=True)
 class Estimate:
+    """The priced result of a set of picks; totals are integer cents computed here, never by the model."""
+
     line_items: tuple[LineItem, ...]
     total_cents: int
     requires_inspection: bool

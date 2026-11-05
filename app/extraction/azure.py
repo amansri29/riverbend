@@ -16,10 +16,10 @@ from openai import AsyncAzureOpenAI
 
 from app.extraction.prompt import Turn
 from app.extraction.provider import (
-    ProviderRejected,
+    ProviderRejectedError,
     ProviderResult,
-    ProviderTimeout,
-    ProviderUnavailable,
+    ProviderTimeoutError,
+    ProviderUnavailableError,
     Usage,
     to_messages,
 )
@@ -27,6 +27,8 @@ from app.extraction.schema import Extraction
 
 
 class AzureOpenAIProvider:
+    """LLMProvider backed by Azure OpenAI structured outputs; SDK errors map to the provider error types."""
+
     name = "azure_openai"
 
     def __init__(
@@ -57,21 +59,21 @@ class AzureOpenAIProvider:
                 timeout=timeout_s,
             )
         except openai.APITimeoutError as e:
-            raise ProviderTimeout(str(e)) from e
+            raise ProviderTimeoutError(str(e)) from e
         except openai.LengthFinishReasonError:
             # Output truncated: the schema cannot have been completed. Treat as invalid output.
             latency = int((time.perf_counter() - started) * 1000)
             return ProviderResult(None, "", Usage(0, max_output_tokens), self._deployment, latency, "length")
         except openai.ContentFilterFinishReasonError as e:
-            raise ProviderRejected(f"content filter: {e}") from e
+            raise ProviderRejectedError(f"content filter: {e}") from e
         except openai.RateLimitError as e:
-            raise ProviderUnavailable(f"rate limited: {e}") from e
+            raise ProviderUnavailableError(f"rate limited: {e}") from e
         except openai.APIStatusError as e:
             if e.status_code >= 500:
-                raise ProviderUnavailable(f"{e.status_code}: {e.message}") from e
-            raise ProviderRejected(f"{e.status_code}: {e.message}") from e
+                raise ProviderUnavailableError(f"{e.status_code}: {e.message}") from e
+            raise ProviderRejectedError(f"{e.status_code}: {e.message}") from e
         except openai.APIConnectionError as e:
-            raise ProviderUnavailable(str(e)) from e
+            raise ProviderUnavailableError(str(e)) from e
 
         latency = int((time.perf_counter() - started) * 1000)
         choice = resp.choices[0]

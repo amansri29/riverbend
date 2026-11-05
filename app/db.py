@@ -16,6 +16,8 @@ from psycopg_pool import AsyncConnectionPool
 
 
 class Database:
+    """Async connection pool with plain and tenant-scoped transactions."""
+
     def __init__(self, url: str, *, min_size: int = 1, max_size: int = 10) -> None:
         self.pool = AsyncConnectionPool(
             url, open=False, min_size=min_size, max_size=max_size, kwargs={"row_factory": dict_row}
@@ -41,5 +43,6 @@ class Database:
 
 
 async def set_tenant(conn: AsyncConnection, shop_id: str) -> None:
+    """Set the transaction-local tenant that every row-level security policy reads."""
     # set_config(..., true) is transaction-local: it cannot leak to the next pooled user.
     await conn.execute("SELECT set_config('app.shop_id', %s, true)", (shop_id,))

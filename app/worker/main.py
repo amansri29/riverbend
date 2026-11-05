@@ -29,6 +29,7 @@ def create_worker_app(
     provider: LLMProvider | None = None,
     dispatcher: Dispatcher | None = None,
 ) -> FastAPI:
+    """Build the worker app: push, DLQ and sweep endpoints, and the optional in-process sweep loop."""
     settings = settings or get_settings()
     applog.configure()
 

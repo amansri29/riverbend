@@ -16,6 +16,7 @@ log = logging.getLogger("sweeper")
 
 
 async def sweep_once(db: Database, dispatcher: Dispatcher, settings: Settings) -> dict[str, int]:
+    """One sweep: republish unpublished outbox rows, release due parked jobs, expire stale questions."""
     async with db.tx() as conn:
         due = await jobs.due_for_publish(conn, unpublished_after_seconds=settings.outbox_republish_after_seconds)
     republished = 0

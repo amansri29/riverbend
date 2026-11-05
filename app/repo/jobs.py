@@ -15,6 +15,7 @@ LEASE_SECONDS = 120  # a 'processing' job older than this is considered crashed 
 
 
 async def enqueue(conn: AsyncConnection, *, shop_id: str, kind: str, message_pk: UUID) -> dict:
+    """Insert the outbox row for a message in the caller's transaction; idempotent per (message, kind)."""
     cur = await conn.execute(
         f"""
         INSERT INTO jobs (shop_id, kind, message_pk) VALUES (%s, %s, %s)
@@ -34,11 +35,13 @@ async def enqueue(conn: AsyncConnection, *, shop_id: str, kind: str, message_pk:
 
 
 async def get(conn: AsyncConnection, job_id: UUID) -> dict | None:
+    """Fetch a job by id."""
     cur = await conn.execute(f"SELECT {COLS} FROM jobs WHERE id = %s", (job_id,))
     return await cur.fetchone()
 
 
 async def mark_published(conn: AsyncConnection, job_id: UUID) -> None:
+    """Record that the broker accepted the envelope."""
     await conn.execute(
         "UPDATE jobs SET status = 'published', published_at = now(), updated_at = now() "
         "WHERE id = %s AND status IN ('queued', 'parked')",
@@ -64,6 +67,7 @@ async def claim(conn: AsyncConnection, job_id: UUID) -> dict | None:
 
 
 async def complete(conn: AsyncConnection, job_id: UUID) -> None:
+    """Mark done and clear any park state."""
     await conn.execute(
         "UPDATE jobs SET status = 'done', park_reason = NULL, run_after = NULL, updated_at = now() WHERE id = %s",
         (job_id,),
@@ -71,6 +75,7 @@ async def complete(conn: AsyncConnection, job_id: UUID) -> None:
 
 
 async def fail(conn: AsyncConnection, job_id: UUID, error: str) -> None:
+    """Mark failed with the last error (dead-lettered)."""
     await conn.execute(
         "UPDATE jobs SET status = 'failed', last_error = %s, updated_at = now() WHERE id = %s",
         (error[:2000], job_id),
@@ -119,9 +124,19 @@ async def release_parked(conn: AsyncConnection, *, shop_id: str, reason: str) ->
 
 
 async def waiting_count(conn: AsyncConnection, shop_id: str) -> dict[str, int]:
+    """Jobs not yet done for a shop, by status."""
     cur = await conn.execute(
         "SELECT status, count(*) AS n FROM jobs WHERE shop_id = %s AND status NOT IN ('done', 'failed') "
         "GROUP BY status",
         (shop_id,),
     )
     return {r["status"]: int(r["n"]) for r in await cur.fetchall()}
+
+
+async def parked_counts(conn: AsyncConnection, shop_id: str) -> dict[str, int]:
+    """Parked jobs for a shop, by park reason."""
+    cur = await conn.execute(
+        "SELECT park_reason, count(*) AS n FROM jobs WHERE shop_id = %s AND status = 'parked' GROUP BY 1",
+        (shop_id,),
+    )
+    return {r["park_reason"]: int(r["n"]) for r in await cur.fetchall()}

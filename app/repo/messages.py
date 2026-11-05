@@ -1,3 +1,5 @@
+"""Inbound messages: the idempotency boundary (unique per shop and message_id)."""
+
 from __future__ import annotations
 
 from datetime import datetime
@@ -37,6 +39,7 @@ async def insert(
 
 
 async def get_by_message_id(conn: AsyncConnection, shop_id: str, message_id: str) -> dict | None:
+    """Fetch by the sender's message id."""
     cur = await conn.execute(
         f"SELECT {COLS} FROM inbound_messages WHERE shop_id = %s AND message_id = %s", (shop_id, message_id)
     )
@@ -44,11 +47,13 @@ async def get_by_message_id(conn: AsyncConnection, shop_id: str, message_id: str
 
 
 async def get(conn: AsyncConnection, shop_id: str, pk: UUID) -> dict | None:
+    """Fetch by primary key."""
     cur = await conn.execute(f"SELECT {COLS} FROM inbound_messages WHERE shop_id = %s AND id = %s", (shop_id, pk))
     return await cur.fetchone()
 
 
 async def set_outcome(conn: AsyncConnection, shop_id: str, pk: UUID, outcome: str, detail: str | None) -> None:
+    """Record the final outcome of processing on the message."""
     await conn.execute(
         "UPDATE inbound_messages SET outcome = %s, outcome_detail = %s WHERE shop_id = %s AND id = %s",
         (outcome, detail, shop_id, pk),
@@ -56,6 +61,7 @@ async def set_outcome(conn: AsyncConnection, shop_id: str, pk: UUID, outcome: st
 
 
 async def outcome_counts(conn: AsyncConnection, shop_id: str) -> dict[str, int]:
+    """Messages per outcome for a shop."""
     cur = await conn.execute(
         "SELECT coalesce(outcome, 'pending') AS outcome, count(*) AS n FROM inbound_messages "
         "WHERE shop_id = %s GROUP BY 1",

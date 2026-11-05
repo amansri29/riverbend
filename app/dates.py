@@ -18,6 +18,8 @@ MAX_HORIZON_DAYS = 180
 
 @dataclass(frozen=True)
 class ResolvedDate:
+    """A date expression resolved in code: the date if any, a note, whether it carries information, an error."""
+
     date: date | None  # a single requested day, when one can be determined
     note: str | None  # human-readable window when no single day ("October", "any weekday")
     has_info: bool  # the customer said *something* about timing
@@ -30,6 +32,7 @@ def _note(expr: DateExpr, base: str | None) -> str | None:
 
 
 def resolve(expr: DateExpr, received_at: datetime) -> ResolvedDate:
+    """Turn a classified DateExpr into a concrete date relative to when the message was received."""
     today = received_at.date()
     kind = expr.kind
 

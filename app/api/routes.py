@@ -1,3 +1,5 @@
+"""HTTP handlers. Tenancy is resolved by the `tenant` dependency; handlers never read shop identity from the body."""
+
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
@@ -20,7 +22,7 @@ from app.api.schemas import (
     money,
 )
 from app.db import Database
-from app.ingest import UnknownReference, accept_message, normalise_received_at
+from app.ingest import UnknownReferenceError, accept_message, normalise_received_at
 from app.repo import budget, jobs, llm_calls, messages, work_orders
 from app.repo.budget import current_month
 
@@ -29,6 +31,7 @@ router = APIRouter()
 
 @router.get("/healthz")
 async def healthz(db: Database = Depends(get_db)) -> dict:
+    """Liveness check that also touches the database."""
     async with db.tx() as conn:
         await conn.execute("SELECT 1")
     return {"ok": True}
@@ -36,6 +39,7 @@ async def healthz(db: Database = Depends(get_db)) -> dict:
 
 @router.post("/shops/{shop_id}/messages", response_model=MessageAccepted, status_code=202)
 async def post_message(request: Request, payload: MessageIn, t: Tenant = Depends(tenant)) -> MessageAccepted:
+    """Accept a customer message for a shop; idempotent on message_id (202 new, 200 duplicate)."""
     db: Database = request.app.state.db
     received_at = normalise_received_at(payload.received_at, t.shop, datetime.now(UTC))
     try:
@@ -49,7 +53,7 @@ async def post_message(request: Request, payload: MessageIn, t: Tenant = Depends
             body=payload.body,
             in_reply_to=payload.in_reply_to,
         )
-    except UnknownReference as e:
+    except UnknownReferenceError as e:
         raise HTTPException(status_code=422, detail=f"unknown in_reply_to {e}") from e
     status_url = str(request.url_for("get_message_status", shop_id=t.shop.id, message_id=payload.message_id))
     if not result.created:
@@ -61,6 +65,7 @@ async def post_message(request: Request, payload: MessageIn, t: Tenant = Depends
 
 @router.get("/shops/{shop_id}/messages/{message_id}", response_model=CustomerStatus, name="get_message_status")
 async def get_message_status(message_id: str, request: Request, t: Tenant = Depends(tenant)) -> CustomerStatus:
+    """Customer-facing status of a message; never exposes model internals or other shops."""
     db: Database = request.app.state.db
     async with db.tenant_tx(t.shop.id) as conn:
         msg = await messages.get_by_message_id(conn, t.shop.id, message_id)
@@ -125,6 +130,7 @@ async def list_work_orders(
     t: Tenant = Depends(tenant),
     status: str | None = Query(default="open"),
 ) -> WorkOrderList:
+    """Shop view: work orders with estimated totals, plus budget and AI health."""
     db: Database = request.app.state.db
     settings = request.app.state.settings
     now = datetime.now(UTC)
@@ -136,22 +142,10 @@ async def list_work_orders(
         outcomes = await messages.outcome_counts(conn, t.shop.id)
         b = await budget.status(conn, t.shop.id, month, t.shop.monthly_cap_micros)
         llm = await llm_calls.totals(conn, t.shop.id)
-        cur = await conn.execute(
-            "SELECT count(*) FILTER (WHERE outcome IN ('provider_error', 'timeout')) AS failures, "
-            "coalesce((SELECT outcome IN ('provider_error', 'timeout') FROM llm_calls "
-            "          WHERE shop_id = %s ORDER BY created_at DESC LIMIT 1), false) AS last_failed "
-            "FROM llm_calls WHERE shop_id = %s AND created_at > %s",
-            (t.shop.id, t.shop.id, now - timedelta(minutes=5)),
-        )
-        recent = await cur.fetchone()
-        recent_failures, last_failed = int(recent["failures"]), bool(recent["last_failed"])
+        recent_failures, last_failed = await llm_calls.recent_health(conn, t.shop.id, now - timedelta(minutes=5))
     async with db.tx() as conn:
         waiting = await jobs.waiting_count(conn, t.shop.id)
-        cur = await conn.execute(
-            "SELECT park_reason, count(*) AS n FROM jobs WHERE shop_id = %s AND status = 'parked' GROUP BY 1",
-            (t.shop.id,),
-        )
-        parked = {r["park_reason"]: int(r["n"]) for r in await cur.fetchall()}
+        parked = await jobs.parked_counts(conn, t.shop.id)
     orders = [_order_out(r) for r in rows]
     parked_provider = parked.get("provider_unavailable", 0)
     return WorkOrderList(
@@ -192,6 +186,7 @@ async def list_work_orders(
 
 @router.get("/shops/{shop_id}/work-orders/{order_id}", response_model=WorkOrderOut)
 async def get_work_order(order_id: str, request: Request, t: Tenant = Depends(tenant)) -> WorkOrderOut:
+    """One work order with its line items."""
     db: Database = request.app.state.db
     async with db.tenant_tx(t.shop.id) as conn:
         row = await work_orders.get(conn, t.shop.id, order_id)

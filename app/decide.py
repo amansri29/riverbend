@@ -15,28 +15,38 @@ from app.extraction.schema import Extraction, MissingField
 
 @dataclass(frozen=True)
 class OrderState:
+    """The persisted facts decide() needs about the order so far (how many questions were asked)."""
+
     questions_asked: int = 0
 
 
 @dataclass(frozen=True)
 class CreateOrder:
+    """Decision: enough information; price it and open the work order."""
+
     overrode_model: bool = False  # model wanted to ask, but the order was complete
 
 
 @dataclass(frozen=True)
 class AskCustomer:
+    """Decision: ask the customer exactly one question covering the listed missing fields."""
+
     question: str
     missing: tuple[MissingField, ...]
 
 
 @dataclass(frozen=True)
 class NeedsReview:
+    """Decision: hand to staff with a reason instead of acting automatically."""
+
     reason: str
     detail: str | None = None
 
 
 @dataclass(frozen=True)
 class NoOrder:
+    """Decision: no work order (price inquiry, out of scope); the reason is recorded on the message."""
+
     reason: str
     detail: str | None = None
 
@@ -58,6 +68,7 @@ _TEMPLATES: dict[str, dict[str, str]] = {
 
 
 def template_question(missing: tuple[MissingField, ...], language: str) -> str:
+    """Fallback question in the customer's language when the model offered none."""
     t = _TEMPLATES.get(language, _TEMPLATES["en"])
     needs_date = "requested_date" in missing
     needs_service = "service" in missing
@@ -69,6 +80,7 @@ def template_question(missing: tuple[MissingField, ...], language: str) -> str:
 
 
 def decide(x: Extraction, state: OrderState, resolved: ResolvedDate) -> Decision:
+    """Pure policy: from a validated extraction and the order state, choose order, question, review, or nothing."""
     if x.outcome == "flag_for_staff":
         return NeedsReview(x.flag_reason or "other", x.flag_detail)
     if x.outcome == "no_work_order":

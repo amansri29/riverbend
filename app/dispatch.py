@@ -22,6 +22,8 @@ log = logging.getLogger("dispatch")
 
 @dataclass(frozen=True)
 class JobEnvelope:
+    """The only thing that enters the broker: ids and the job kind, never customer text."""
+
     job_id: str
     shop_id: str
     kind: str
@@ -36,10 +38,14 @@ class JobEnvelope:
 
 
 class Dispatcher(Protocol):
+    """Port for handing a job id to the worker: Pub/Sub in production, inline in dev and tests."""
+
     async def publish(self, env: JobEnvelope) -> None: ...
 
 
 class PubSubDispatcher:
+    """Publishes envelopes to a Pub/Sub topic (real or emulator); delivery and retries belong to the subscription."""
+
     def __init__(self, project: str, topic: str) -> None:
         from google.cloud import pubsub_v1  # imported lazily so tests never need it
 
@@ -98,6 +104,8 @@ class InlineDispatcher:
 
 @dataclass
 class CollectingDispatcher:
+    """Test double that records envelopes instead of delivering them."""
+
     published: list[JobEnvelope] = field(default_factory=list)
 
     async def publish(self, env: JobEnvelope) -> None:

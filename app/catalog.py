@@ -12,6 +12,8 @@ from pathlib import Path
 
 @dataclass(frozen=True)
 class Service:
+    """One catalog service with its listed price in cents and whether the final price needs inspection."""
+
     code: str
     name: str
     price_cents: int
@@ -21,12 +23,16 @@ class Service:
 
 @dataclass(frozen=True)
 class ShopInfo:
+    """A shop as listed in the catalog file."""
+
     id: str
     name: str
 
 
 @dataclass(frozen=True)
 class Catalog:
+    """The fixed service catalog shared by all shops, with a content hash as its version."""
+
     version: str
     currency: str
     services: dict[str, Service]
@@ -41,6 +47,7 @@ class Catalog:
 
 
 def load_catalog(path: str | Path) -> Catalog:
+    """Load and validate the catalog JSON; prices become integer cents."""
     raw = Path(path).read_bytes()
     data = json.loads(raw)
     services = {
@@ -64,4 +71,5 @@ def load_catalog(path: str | Path) -> Catalog:
 
 @lru_cache
 def default_catalog(path: str = "catalog/catalog.json") -> Catalog:
+    """Process-wide cached catalog from the default path."""
     return load_catalog(path)

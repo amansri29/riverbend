@@ -16,6 +16,8 @@ from psycopg import AsyncConnection
 
 @dataclass(frozen=True)
 class BudgetStatus:
+    """A shop's month: cap, reserved, spent, exhausted."""
+
     month: date
     cap_micros: int
     spent_micros: int
@@ -31,11 +33,13 @@ class BudgetStatus:
 
 
 def current_month(now: datetime, timezone: str) -> date:
+    """The first day of the month in the shop's time zone."""
     local = now.astimezone(ZoneInfo(timezone))
     return local.date().replace(day=1)
 
 
 async def ensure_row(conn: AsyncConnection, shop_id: str, month: date, cap_micros: int) -> None:
+    """Create the month's budget row if it does not exist."""
     await conn.execute(
         "INSERT INTO shop_budgets (shop_id, month, cap_micros) VALUES (%s, %s, %s) ON CONFLICT DO NOTHING",
         (shop_id, month, cap_micros),
@@ -45,6 +49,7 @@ async def ensure_row(conn: AsyncConnection, shop_id: str, month: date, cap_micro
 async def reserve(
     conn: AsyncConnection, *, shop_id: str, month: date, cap_micros: int, job_id: UUID, attempt: int, micros: int
 ) -> bool:
+    """Atomically reserve micros against the cap; False when the cap would be exceeded."""
     await ensure_row(conn, shop_id, month, cap_micros)
     # cap_micros comes from the shops table on every call: raising a shop's cap takes effect at once.
     cur = await conn.execute(
@@ -77,6 +82,7 @@ async def _take_reservation(
 
 
 async def settle(conn: AsyncConnection, *, shop_id: str, job_id: UUID, attempt: int, actual_micros: int) -> None:
+    """Replace the reservation with the actual cost."""
     r = await _take_reservation(conn, shop_id, job_id, attempt, "settled")
     if r is None:
         return
@@ -88,6 +94,7 @@ async def settle(conn: AsyncConnection, *, shop_id: str, job_id: UUID, attempt: 
 
 
 async def release(conn: AsyncConnection, *, shop_id: str, job_id: UUID, attempt: int) -> None:
+    """Drop the reservation without spending (the call failed or was skipped)."""
     r = await _take_reservation(conn, shop_id, job_id, attempt, "released")
     if r is None:
         return

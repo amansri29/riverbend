@@ -1,5 +1,8 @@
+"""The model-call ledger: every call, its tokens, cost, latency and outcome."""
+
 from __future__ import annotations
 
+from datetime import datetime
 from uuid import UUID
 
 from psycopg import AsyncConnection
@@ -23,6 +26,7 @@ async def record(
     raw_output: str | None,
     attempt: int,
 ) -> None:
+    """Append one model call to the ledger, including failures and rejected output."""
     await conn.execute(
         """
         INSERT INTO llm_calls (shop_id, job_id, message_pk, provider, model, input_tokens, output_tokens,
@@ -48,6 +52,7 @@ async def record(
 
 
 async def totals(conn: AsyncConnection, shop_id: str) -> dict:
+    """Lifetime call counts, tokens and cost for a shop."""
     cur = await conn.execute(
         """
         SELECT count(*) AS calls,
@@ -63,3 +68,18 @@ async def totals(conn: AsyncConnection, shop_id: str) -> dict:
     )
     r = await cur.fetchone()
     return {k: int(v) for k, v in r.items()}
+
+
+async def recent_health(conn: AsyncConnection, shop_id: str, since: datetime) -> tuple[int, bool]:
+    """Provider failures since a time, and whether the shop's most recent call was a failure."""
+    cur = await conn.execute(
+        """
+        SELECT count(*) FILTER (WHERE outcome IN ('provider_error', 'timeout')) AS failures,
+               coalesce((SELECT outcome IN ('provider_error', 'timeout') FROM llm_calls
+                         WHERE shop_id = %s ORDER BY created_at DESC LIMIT 1), false) AS last_failed
+        FROM llm_calls WHERE shop_id = %s AND created_at > %s
+        """,
+        (shop_id, shop_id, since),
+    )
+    r = await cur.fetchone()
+    return int(r["failures"]), bool(r["last_failed"])

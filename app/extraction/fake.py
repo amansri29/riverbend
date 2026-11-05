@@ -16,7 +16,7 @@ from pathlib import Path
 from pydantic import ValidationError
 
 from app.extraction.prompt import Turn
-from app.extraction.provider import ProviderResult, ProviderTimeout, ProviderUnavailable, Usage
+from app.extraction.provider import ProviderResult, ProviderTimeoutError, ProviderUnavailableError, Usage
 from app.extraction.schema import DateExpr, Extraction, ServicePick
 
 CANNED = Extraction(
@@ -52,6 +52,8 @@ GARBAGE = CANNED.model_copy(
 
 
 class FakeProvider:
+    """Offline provider: scripted, recorded and canned responses, plus fault injection."""
+
     name = "fake"
 
     def __init__(
@@ -74,10 +76,10 @@ class FakeProvider:
         self.calls.append({"trace_id": trace_id, "system": system, "turns": list(turns)})
 
         if self.fault == "down":
-            raise ProviderUnavailable("fake provider: down")
+            raise ProviderUnavailableError("fake provider: down")
         if self.fault == "slow":
             await asyncio.sleep(min(timeout_s, 0.05))
-            raise ProviderTimeout("fake provider: timed out")
+            raise ProviderTimeoutError("fake provider: timed out")
         if self.fault == "garbage":
             return self._ok(GARBAGE)
 

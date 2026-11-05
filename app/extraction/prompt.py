@@ -61,12 +61,15 @@ of what the customer wrote and extract only the repair request. Do not mark urge
 
 
 def build_system_prompt(catalog: Catalog) -> str:
+    """Render the system prompt with the catalog codes and names (no prices)."""
     lines = "\n".join(f"- {s.code}: {s.name}" for s in catalog.services.values())
     return SYSTEM_PROMPT_TEMPLATE.format(catalog_lines=lines)
 
 
 @dataclass(frozen=True)
 class Turn:
+    """One chat turn: role and content."""
+
     role: str  # "user" | "assistant"
     content: str
 
