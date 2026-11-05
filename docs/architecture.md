@@ -1,31 +1,15 @@
 # Architecture note
 
 Riverbend work orders turns free-text customer messages into priced, structured work orders for
-three bike shops that must never see each other's data. Decision records with the alternatives
-considered are in `decisions.md`; this note is the shape, the boundaries, the data model,
-tenancy, and the three decisions I most want challenged.
+three bike shops that must never see each other's data. Decision records with alternatives are
+in `decisions.md`.
 
 ## Shape
 
-```
- web form ─┐  POST /shops/{id}/messages   X-API-Key → shop → [one tx: inbound_message + job] → 202
- email    ─┤  GET  /shops/{id}/messages/{mid}   customer-facing status, no internals        API
-           └─ GET  /shops/{id}/work-orders      shop list + estimated totals + ai/budget health (Cloud Run)
-                               │ publish {job_id, shop_id, kind} after commit  (ids only, never text)
-                               ▼
-              Pub/Sub topic ──push──▶ worker /pubsub/push          retry 10s..600s ×5 ──▶ DLQ ──▶ /pubsub/dlq
-              Cloud Scheduler ─1/min─▶ worker /sweep               republish outbox, release parked, expire
-                               │
-   worker pipeline:  claim job → tenant tx(shop) → breaker? → reserve budget → model (structured output)
-                     → validate (schema + rules, one corrective retry) → decide() → price in code
-                     → write order | question | review → settle budget → ack
-                               ▼
-   Postgres: shops · inbound_messages · work_orders · jobs(outbox) · llm_calls · shop_budgets · outbound
-             row-level security forced on every tenant table
-```
+![Architecture: API, Pub/Sub, worker, Cloud SQL, Azure OpenAI, platform services](architecture.png)
 
-Two processes from one image. The API never calls the model. The worker accepts input only
-from Pub/Sub and Scheduler.
+Two processes from one image: the API never calls the model; the worker accepts input only from
+Pub/Sub and Scheduler.
 
 ## Module boundaries
 

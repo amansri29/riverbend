@@ -21,13 +21,14 @@ CHROME = [
     "chromium-browser",
 ]
 STYLE = """
-@page { size: Letter; margin: 0.75in; }
-body { font-family: Helvetica, Arial, sans-serif; font-size: 10.5pt; line-height: 1.3; }
+@page { size: Letter; margin: 0.6in 0.7in; }
+body { font-family: Helvetica, Arial, sans-serif; font-size: 10pt; line-height: 1.28; }
 h1 { font-size: 16pt; margin: 0 0 6pt; } h2 { font-size: 12pt; margin: 10pt 0 4pt; }
 p { margin: 0 0 6pt; } pre { font-size: 7.4pt; line-height: 1.15; margin: 4pt 0; }
 table { border-collapse: collapse; font-size: 9pt; margin: 4pt 0; }
 td, th { border: 1px solid #999; padding: 2px 5px; vertical-align: top; }
 ol { margin: 0; padding-left: 18pt; } li { margin-bottom: 4pt; }
+img { width: 94%; height: auto; display: block; margin: 2pt auto 6pt; }
 """
 
 

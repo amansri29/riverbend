@@ -1,0 +1,137 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1300" height="785" viewBox="0 0 1300 785" font-family="Helvetica, Arial, sans-serif" font-size="13">
+  <defs>
+    <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#374151"/>
+    </marker>
+    <marker id="arrg" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#9ca3af"/>
+    </marker>
+  </defs>
+  <style>
+    .box { fill:#ffffff; stroke:#374151; stroke-width:1.5; rx:8; }
+    .gcp { fill:#f3f6fb; stroke:#1f4e9c; stroke-width:1.5; rx:8; }
+    .ext { fill:#fff7ed; stroke:#b45309; stroke-width:1.5; rx:8; }
+    .db  { fill:#f0fdf4; stroke:#15803d; stroke-width:1.5; rx:8; }
+    .t   { fill:#111827; font-weight:bold; font-size:14px; }
+    .s   { fill:#374151; font-size:12px; }
+    .m   { fill:#374151; font-size:11.5px; font-family: Menlo, Consolas, monospace; }
+    .l   { fill:#374151; font-size:11.5px; }
+    .lg  { fill:#6b7280; font-size:11px; }
+    .edge { stroke:#374151; stroke-width:1.6; fill:none; marker-end:url(#arr); }
+    .dash { stroke:#9ca3af; stroke-width:1.4; fill:none; stroke-dasharray:5 4; marker-end:url(#arrg); }
+    .tag { fill:#1f4e9c; font-size:10.5px; font-weight:bold; letter-spacing:.3px; }
+  </style>
+
+  <text x="24" y="30" class="t" font-size="18">Riverbend work orders — architecture (GCP)</text>
+  <text x="24" y="50" class="lg">One image, two Cloud Run services. The API never calls the model; the worker only accepts input from Pub/Sub and Scheduler. The database is the truth, the broker is only delivery.</text>
+
+  <!-- Customer -->
+  <rect x="24" y="200" width="160" height="110" class="box"/>
+  <text x="40" y="224" class="t">Customers</text>
+  <text x="40" y="246" class="s">web form</text>
+  <text x="40" y="264" class="s">email hook</text>
+  <text x="40" y="292" class="lg">free text, per shop</text>
+
+  <!-- API -->
+  <rect x="250" y="160" width="300" height="190" class="gcp"/>
+  <text x="266" y="178" class="tag">CLOUD RUN · PUBLIC INGRESS</text>
+  <text x="266" y="200" class="t">riverbend-api</text>
+  <text x="266" y="222" class="m">POST /shops/{shop}/messages</text>
+  <text x="266" y="238" class="l">  X-API-Key → shop · one tx: message + job · 202 (dup: 200)</text>
+  <text x="266" y="260" class="m">GET  /shops/{shop}/messages/{id}</text>
+  <text x="266" y="276" class="l">  status: received · question · confirmed · review</text>
+  <text x="266" y="298" class="m">GET  /shops/{shop}/work-orders</text>
+  <text x="266" y="314" class="l">  open orders + estimated totals · budget · AI health</text>
+  <text x="266" y="338" class="lg">never calls the model</text>
+
+  <!-- Pub/Sub -->
+  <rect x="610" y="120" width="280" height="92" class="gcp"/>
+  <text x="626" y="138" class="tag">PUB/SUB</text>
+  <text x="626" y="160" class="t">work-order-jobs</text>
+  <text x="626" y="180" class="l">push subscription · ack deadline 120 s</text>
+  <text x="626" y="198" class="l">retry 10 s → 600 s · 5 attempts → dead letter</text>
+
+  <rect x="610" y="232" width="280" height="56" class="gcp"/>
+  <text x="626" y="250" class="tag">PUB/SUB · DEAD LETTER</text>
+  <text x="626" y="272" class="t">work-order-jobs-dlq</text>
+
+  <!-- Scheduler -->
+  <rect x="610" y="320" width="280" height="60" class="gcp"/>
+  <text x="626" y="338" class="tag">CLOUD SCHEDULER</text>
+  <text x="626" y="360" class="l">every minute → POST /sweep</text>
+
+  <!-- Worker -->
+  <rect x="950" y="100" width="320" height="300" class="gcp"/>
+  <text x="966" y="118" class="tag">CLOUD RUN · INTERNAL INGRESS · SCALE 0..N</text>
+  <text x="966" y="140" class="t">riverbend-worker</text>
+  <text x="966" y="160" class="m">/pubsub/push  /pubsub/dlq  /sweep</text>
+  <text x="966" y="186" class="s" font-weight="bold">pipeline, per job</text>
+  <text x="966" y="204" class="l">1  claim job (ids) → tenant transaction</text>
+  <text x="966" y="220" class="l">2  circuit breaker open? → park</text>
+  <text x="966" y="236" class="l">3  reserve worst-case budget → at cap: park</text>
+  <text x="966" y="252" class="l">4  model call, structured output</text>
+  <text x="966" y="268" class="l">5  validate: schema + rules, one retry</text>
+  <text x="966" y="284" class="l">6  decide(): order · one question · review · none</text>
+  <text x="966" y="300" class="l">7  price in code from catalog</text>
+  <text x="966" y="316" class="l">8  write · settle budget · ack</text>
+  <text x="966" y="344" class="lg">RETRY → 503 (broker redelivers)</text>
+  <text x="966" y="360" class="lg">PARKED → ack; row holds run_after; sweeper republishes</text>
+  <text x="966" y="388" class="lg">invoker: Pub/Sub + Scheduler service accounts only</text>
+
+  <!-- Azure -->
+  <rect x="950" y="440" width="320" height="70" class="ext"/>
+  <text x="966" y="458" class="tag" fill="#b45309">AZURE OPENAI</text>
+  <text x="966" y="480" class="t">gpt-5.6-luna · structured output</text>
+  <text x="966" y="498" class="l">picks catalog codes + quantities · never sees prices</text>
+
+  <!-- Cloud SQL -->
+  <rect x="250" y="440" width="600" height="150" class="db"/>
+  <text x="266" y="458" class="tag" fill="#15803d">CLOUD SQL · POSTGRESQL 16 · CONNECTOR SOCKET</text>
+  <text x="266" y="480" class="t">system of record</text>
+  <text x="266" y="502" class="m">shops · inbound_messages · work_orders · jobs (outbox) · llm_calls (ledger)</text>
+  <text x="266" y="518" class="m">shop_budgets · budget_reservations · outbound_messages</text>
+  <text x="266" y="544" class="l">tenancy: composite keys (shop_id, …) + row-level security FORCED on every tenant table</text>
+  <text x="266" y="560" class="l">idempotency: UNIQUE(shop_id, message_id) · UNIQUE(shop_id, source_message_id)</text>
+  <text x="266" y="578" class="lg">app role riverbend_app is subject to RLS; migrations run as the owner role (Cloud Run Job)</text>
+
+  <!-- Platform -->
+  <rect x="24" y="640" width="1246" height="120" class="box" stroke-dasharray="4 3"/>
+  <text x="40" y="662" class="t">Platform</text>
+  <text x="40" y="686" class="l"><tspan font-weight="bold">Secret Manager</tspan>  Azure key, DB passwords → env vars at deploy; nothing in the image, Compose, or tfvars</text>
+  <text x="40" y="706" class="l"><tspan font-weight="bold">Cloud Build → Artifact Registry</tspan>  one image on push; migrate job runs before both services roll</text>
+  <text x="40" y="726" class="l"><tspan font-weight="bold">Cloud Monitoring + Logging</tspan>  alerts on DLQ depth, backlog age, worker 5xx · JSON logs carry shop_id, message_id, job_id</text>
+  <text x="40" y="746" class="lg">Local: the same code against Docker Compose (Postgres + Pub/Sub emulator + api + worker). Terraform in infra/terraform.</text>
+
+  <!-- Edges -->
+  <path d="M 184 255 L 250 255" class="edge"/>
+  <text x="190" y="248" class="lg">HTTP</text>
+
+  <path d="M 550 170 L 610 160" class="edge"/>
+  <text x="330" y="150" class="lg">publish after commit · {job_id, shop_id, kind} · ids only</text>
+  
+
+  <path d="M 890 150 L 950 150" class="edge"/>
+  <text x="902" y="143" class="lg">push</text>
+
+  <path d="M 750 212 L 750 232" class="edge"/>
+  <text x="757" y="226" class="lg">after 5</text>
+
+  <path d="M 890 260 L 950 260" class="edge"/>
+  <text x="902" y="254" class="lg">push</text>
+
+  <path d="M 890 350 L 950 350" class="edge"/>
+  <text x="900" y="344" class="lg">sweep</text>
+
+  <path d="M 1230 400 L 1230 440" class="edge"/>
+  <text x="966" y="424" class="lg">one call per attempt · timeout · no SDK retries</text>
+
+  <path d="M 400 350 L 400 440" class="edge"/>
+  <text x="408" y="400" class="lg">tenant tx</text>
+
+  <path d="M 950 385 L 900 385 L 900 500 L 850 500" class="edge"/>
+  <text x="770" y="412" class="lg">claim (ids) ·</text>
+  <text x="770" y="426" class="lg">tenant tx (shop)</text>
+
+  <path d="M 400 640 L 400 590" class="dash"/>
+  <path d="M 1110 640 L 1110 510" class="dash"/>
+</svg>
