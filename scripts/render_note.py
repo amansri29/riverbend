@@ -28,7 +28,7 @@ p { margin: 0 0 6pt; } pre { font-size: 7.4pt; line-height: 1.15; margin: 4pt 0;
 table { border-collapse: collapse; font-size: 9pt; margin: 4pt 0; }
 td, th { border: 1px solid #999; padding: 2px 5px; vertical-align: top; }
 ol { margin: 0; padding-left: 18pt; } li { margin-bottom: 4pt; }
-img { width: 94%; height: auto; display: block; margin: 2pt auto 6pt; }
+img { width: 100%; height: auto; display: block; margin: 2pt auto 6pt; }
 """
 
 

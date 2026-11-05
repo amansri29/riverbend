@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
+from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import JSONResponse
@@ -76,11 +77,16 @@ async def get_message_status(message_id: str, request: Request, t: Tenant = Depe
         if msg["in_reply_to"]:
             root = await messages.get(conn, t.shop.id, msg["in_reply_to"]) or msg
         order = await work_orders.get_by_source(conn, t.shop.id, root["id"])
-    return _customer_status(msg, root, order)
+    return _customer_status(msg, root, order, t.shop.timezone)
 
 
-def _customer_status(msg: dict, root: dict, order: dict | None) -> CustomerStatus:
-    base = dict(message_id=msg["message_id"], received_at=msg["received_at"])
+def _local(ts: datetime | None, tz: str) -> datetime | None:
+    """Render a stored UTC timestamp in the shop's time zone, which is what customers and staff expect."""
+    return ts.astimezone(ZoneInfo(tz)) if ts else None
+
+
+def _customer_status(msg: dict, root: dict, order: dict | None, tz: str) -> CustomerStatus:
+    base = dict(message_id=msg["message_id"], received_at=_local(msg["received_at"], tz))
     outcome = msg["outcome"]
     if outcome in ("rejected_invalid_output", "failed"):
         return CustomerStatus(
@@ -146,7 +152,7 @@ async def list_work_orders(
     async with db.tx() as conn:
         waiting = await jobs.waiting_count(conn, t.shop.id)
         parked = await jobs.parked_counts(conn, t.shop.id)
-    orders = [_order_out(r) for r in rows]
+    orders = [_order_out(r, t.shop.timezone) for r in rows]
     parked_provider = parked.get("provider_unavailable", 0)
     return WorkOrderList(
         shop_id=t.shop.id,
@@ -192,10 +198,10 @@ async def get_work_order(order_id: str, request: Request, t: Tenant = Depends(te
         row = await work_orders.get(conn, t.shop.id, order_id)
     if row is None:
         raise HTTPException(status_code=404, detail="work order not found")
-    return _order_out(row)
+    return _order_out(row, t.shop.timezone)
 
 
-def _order_out(r: dict) -> WorkOrderOut:
+def _order_out(r: dict, tz: str) -> WorkOrderOut:
     return WorkOrderOut(
         id=str(r["id"]),
         message_id=r.get("message_id"),
@@ -216,6 +222,6 @@ def _order_out(r: dict) -> WorkOrderOut:
         clarification_question=r["clarification_question"],
         questions_asked=r["questions_asked"],
         amendments=r["amendments"],
-        created_at=r["created_at"],
-        updated_at=r["updated_at"],
+        created_at=_local(r["created_at"], tz),
+        updated_at=_local(r["updated_at"], tz),
     )
