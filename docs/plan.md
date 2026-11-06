@@ -16,8 +16,8 @@ anything cosmetic.
       write), parked states, DLQ endpoint, sweeper; fake provider with fault injection
 - [x] 7. Dispatcher: Pub/Sub publisher + emulator setup script; inline dispatcher for tests
 - [x] 8. Docker Compose + Dockerfile + init container (migrate, seed, topics)
-- [ ] 9. Azure OpenAI provider with record mode; run the 40 samples; results table
+- [x] 9. Azure OpenAI provider with record mode; run the 40 samples; results table
 - [x] 10. Failure demos: duplicate, provider down, budget cap (documented commands)
 - [x] 11. Terraform for GCP + deployment note
 - [x] 12. Architecture note (2 pages, `make note` checks), not-built list, README assumptions, Loom script; time log final after the Azure run
-- [ ] 13. Loom: pick the override from `ai-decisions-log.md`, record (user)
+- [x] 13. Video: scripted tutorial pipeline in `scripts/tutorial/`; override chapter cut separately
