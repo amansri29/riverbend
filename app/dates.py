@@ -82,5 +82,25 @@ def resolve(expr: DateExpr, received_at: datetime) -> ResolvedDate:
         label = f"{calendar.month_name[expr.month]} {year}"
         return ResolvedDate(None, _note(expr, label), True, None)
 
-    # vague: "any day next week", "weekend", "any weekday"
+    # vague: "any day next week", "weekend", "any weekday". The model sometimes files a plain weekday or
+    # "tomorrow" under vague; code recovers the single day from the text rather than losing it.
+    recovered = _recover_from_text(expr)
+    if recovered is not None:
+        return resolve(recovered, received_at)
     return ResolvedDate(None, _note(expr, expr.text or "flexible"), True, None)
+
+
+def _recover_from_text(expr: DateExpr) -> DateExpr | None:
+    """A vague expression whose text is really a weekday, today, or tomorrow becomes that kind."""
+    words = (expr.text or "").lower().replace(",", " ").split()
+    if not words or len(words) > 3:
+        return None
+    if words == ["today"]:
+        return expr.model_copy(update={"kind": "relative_days", "relative_days": 0})
+    if words == ["tomorrow"]:
+        return expr.model_copy(update={"kind": "relative_days", "relative_days": 1})
+    days = [w for w in words if w in WEEKDAYS]
+    rest = [w for w in words if w not in WEEKDAYS and w not in ("next", "this")]
+    if len(days) == 1 and not rest:
+        return expr.model_copy(update={"kind": "weekday", "weekday": days[0], "next_week": "next" in words})
+    return None

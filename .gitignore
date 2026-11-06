@@ -13,3 +13,5 @@ infra/terraform/*.tfstate*
 infra/terraform/*.tfvars
 !infra/terraform/example.tfvars
 docs/results.generated.md
+docs/tutorial/build/
+docs/tutorial/*.mp4

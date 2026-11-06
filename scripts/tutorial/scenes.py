@@ -17,6 +17,18 @@ def psql(sql: str, url: str = DB) -> str:
     return f'psql {url} -x -c "{sql}"'
 
 
+CLEANUP_SQL = """
+WITH m AS (SELECT id FROM inbound_messages WHERE message_id LIKE 'tut-%'),
+     j AS (SELECT id FROM jobs WHERE message_pk IN (SELECT id FROM m)),
+     w AS (SELECT id FROM work_orders WHERE source_message_id IN (SELECT id FROM m)),
+     d1 AS (DELETE FROM llm_calls WHERE job_id IN (SELECT id FROM j) OR message_pk IN (SELECT id FROM m)),
+     d2 AS (DELETE FROM budget_reservations WHERE job_id IN (SELECT id FROM j)),
+     d3 AS (DELETE FROM outbound_messages WHERE work_order_id IN (SELECT id FROM w)),
+     d4 AS (DELETE FROM work_orders WHERE id IN (SELECT id FROM w)),
+     d5 AS (DELETE FROM jobs WHERE id IN (SELECT id FROM j))
+DELETE FROM inbound_messages WHERE id IN (SELECT id FROM m)
+"""
+
 # Commands run by `build.py capture` (needs the stack running). Output is stored under captures/.
 CAPTURES: dict[str, list[tuple[str, str]]] = {
     "post": [
@@ -29,7 +41,7 @@ CAPTURES: dict[str, list[tuple[str, str]]] = {
         ),
         (
             psql(
-                "SELECT message_id, channel, received_at, outcome FROM inbound_messages WHERE message_id = 'tut-1005'"
+                "SELECT message_id, channel, received_at AT TIME ZONE 'America/New_York' AS received_local, outcome FROM inbound_messages WHERE message_id = 'tut-1005'"
             ),
             "post_row.txt",
         ),
@@ -44,12 +56,15 @@ CAPTURES: dict[str, list[tuple[str, str]]] = {
     "status": [
         (
             f"sleep 8; curl -s {A}/shops/rb-northside/messages/tut-1005 -H 'X-API-Key: dev-key-rb-northside' "
-            "| python3 -m json.tool",
+            "| python3 -c \"import sys, json; d = json.load(sys.stdin); print(d['status'], '-', d['message']); "
+            "print('requested_date', d['requested_date'], d['date_note'] or ''); e = d['estimate']; "
+            "[print(' ', li['code'], 'x', li['quantity'], li['line_total']) for li in e['line_items']]; print('total', e['total'], e['currency'])\"",
             "status.txt",
         ),
         (
             psql(
-                "SELECT status, bike_type, issues, urgency, requested_date, line_items, estimated_total_cents "
+                "SELECT status, issues, urgency, requested_date, date_note, "
+                "jsonb_path_query_array(line_items, '\\$[*].code') AS codes, estimated_total_cents "
                 "FROM work_orders w JOIN inbound_messages m ON m.id = w.source_message_id "
                 "WHERE m.message_id = 'tut-1005'"
             ),
@@ -68,14 +83,14 @@ CAPTURES: dict[str, list[tuple[str, str]]] = {
             psql(
                 "SELECT status, questions_asked, clarification_question, bike_type, requested_date, date_note, "
                 "estimated_total_cents FROM work_orders w JOIN inbound_messages m ON m.id = w.source_message_id "
-                "WHERE m.message_id = 'ui-1027'"
+                "WHERE m.message_id = 'm-1027'"
             ),
             "followup_order.txt",
         ),
         (
             psql(
                 "SELECT o.channel, o.body, o.created_at FROM outbound_messages o JOIN work_orders w ON w.id = o.work_order_id "
-                "JOIN inbound_messages m ON m.id = w.source_message_id WHERE m.message_id = 'ui-1027'"
+                "JOIN inbound_messages m ON m.id = w.source_message_id WHERE m.message_id = 'm-1027'"
             ),
             "followup_outbound.txt",
         ),
@@ -129,7 +144,8 @@ CAPTURES: dict[str, list[tuple[str, str]]] = {
     ],
     "tricky": [
         (
-            f"for m in m-1024 m-1009 m-1018 m-1038; do curl -s {A}/shops/rb-downtown/messages/$m -H 'X-API-Key: {K}' "
+            f"for p in rb-downtown:m-1024 rb-downtown:m-1009 rb-downtown:m-1018 rb-lakeshore:m-1038; do s=${{p%%:*}}; m=${{p##*:}}; "
+            f'curl -s {A}/shops/$s/messages/$m -H "X-API-Key: dev-key-$s" '
             f"| python3 -c \"import sys, json; d = json.load(sys.stdin); print(d['message_id'], '->', d['status'], '|', "
             "d['message'], '| total', d['estimate']['total'] if d['estimate'] else '-')\"; done",
             "tricky.txt",

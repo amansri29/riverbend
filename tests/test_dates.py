@@ -69,3 +69,23 @@ def test_vague_keeps_text(received_at):
 def test_none_has_no_info(received_at):
     r = resolve(date_expr(kind="none"), received_at)
     assert not r.has_info and r.date is None and r.error is None
+
+
+def test_vague_text_that_names_a_weekday_resolves_to_that_day(received_at):
+    r = resolve(date_expr(kind="vague", text="Saturday"), received_at)
+    assert r.date == date(2026, 9, 26) and r.error is None
+
+
+def test_vague_next_weekday_pushes_a_week(received_at):
+    r = resolve(date_expr(kind="vague", text="next Tuesday"), received_at)
+    assert r.date == date(2026, 9, 29)
+
+
+def test_vague_tomorrow_and_today(received_at):
+    assert resolve(date_expr(kind="vague", text="tomorrow"), received_at).date == date(2026, 9, 23)
+    assert resolve(date_expr(kind="vague", text="today"), received_at).date == date(2026, 9, 22)
+
+
+def test_truly_vague_stays_a_note(received_at):
+    r = resolve(date_expr(kind="vague", text="any day next week"), received_at)
+    assert r.date is None and r.note == "any day next week" and r.has_info
