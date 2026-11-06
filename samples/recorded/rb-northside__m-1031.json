@@ -1,0 +1,10 @@
+{
+  "raw_text": "{\"outcome\":\"work_order\",\"flag_reason\":null,\"flag_detail\":null,\"language\":\"en\",\"customer_name\":null,\"bike_type\":\"road bike\",\"bike_count\":1,\"issues\":[],\"services\":[{\"code\":\"WHEEL_TRUE\",\"quantity\":2,\"evidence\":\"Wheel truing, front and rear.\"}],\"urgency\":\"normal\",\"urgency_reason\":null,\"date\":{\"kind\":\"weekday\",\"relative_days\":null,\"weekday\":\"tuesday\",\"next_week\":true,\"absolute_date\":null,\"month\":null,\"part_of_day\":null,\"time\":null,\"text\":null},\"question\":null,\"missing\":[]}",
+  "usage": {
+    "input_tokens": 1618,
+    "output_tokens": 134
+  },
+  "model": "gpt-5.6-luna-2026-07-09",
+  "latency_ms": 1480,
+  "refusal": null
+}

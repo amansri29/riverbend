@@ -1,0 +1,10 @@
+{
+  "raw_text": "{\"outcome\":\"work_order\",\"flag_reason\":null,\"flag_detail\":null,\"language\":\"en\",\"customer_name\":\"Beth\",\"bike_type\":\"cargo bike\",\"bike_count\":1,\"issues\":[],\"services\":[{\"code\":\"TUNE_BASIC\",\"quantity\":1,\"evidence\":\"basic tune-up\"}],\"urgency\":\"normal\",\"urgency_reason\":null,\"date\":{\"kind\":\"vague\",\"relative_days\":null,\"weekday\":null,\"next_week\":false,\"absolute_date\":null,\"month\":null,\"part_of_day\":null,\"time\":null,\"text\":\"Any weekday\"},\"question\":null,\"missing\":[]}",
+  "usage": {
+    "input_tokens": 1622,
+    "output_tokens": 131
+  },
+  "model": "gpt-5.6-luna-2026-07-09",
+  "latency_ms": 1519,
+  "refusal": null
+}

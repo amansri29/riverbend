@@ -42,6 +42,7 @@ Do NOT compute calendar dates. Classify the phrase:
 - "next Tuesday" → kind weekday, weekday tuesday, next_week true
 - "October 4" → kind absolute, absolute_date in YYYY-MM-DD using the year of the received timestamp
 - "sometime in October" → kind month, month 10
+- clock times go in `time` as 24-hour HH:MM: "4pm" → 16:00, "around 4 after school" → 16:00, "10" with no am/pm → 10:00
 - "any day next week", "weekend", "any weekday" → kind vague, text verbatim
 - nothing said about timing → kind none
 Unused fields are null; next_week is false unless stated.

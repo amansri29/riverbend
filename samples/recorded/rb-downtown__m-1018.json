@@ -1,0 +1,10 @@
+{
+  "raw_text": "{\"outcome\":\"no_work_order\",\"flag_reason\":\"price_inquiry\",\"flag_detail\":null,\"language\":\"en\",\"customer_name\":null,\"bike_type\":null,\"bike_count\":1,\"issues\":[],\"services\":[{\"code\":\"TUNE_FULL\",\"quantity\":1,\"evidence\":\"full overhaul\"}],\"urgency\":\"normal\",\"urgency_reason\":null,\"date\":{\"kind\":\"none\",\"relative_days\":null,\"weekday\":null,\"next_week\":false,\"absolute_date\":null,\"month\":null,\"part_of_day\":null,\"time\":null,\"text\":null},\"question\":null,\"missing\":[]}",
+  "usage": {
+    "input_tokens": 1619,
+    "output_tokens": 129
+  },
+  "model": "gpt-5.6-luna-2026-07-09",
+  "latency_ms": 2683,
+  "refusal": null
+}

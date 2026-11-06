@@ -46,3 +46,4 @@ ignore = ["B008"]  # FastAPI Depends()/Header() in defaults is the framework idi
 "app/extraction/prompt.py" = ["E501"]
 "tests/*" = ["E501", "D"]
 "scripts/*" = ["D103"]
+"scripts/tutorial/*" = ["E501", "D103"]

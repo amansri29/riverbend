@@ -1,0 +1,10 @@
+{
+  "raw_text": "{\"outcome\":\"work_order\",\"flag_reason\":null,\"flag_detail\":null,\"language\":\"en\",\"customer_name\":\"Aisha\",\"bike_type\":\"city bike with rim brakes\",\"bike_count\":1,\"issues\":[\"Both brakes need adjusting\",\"Brakes feel soft\"],\"services\":[{\"code\":\"BRAKE_ADJUST\",\"quantity\":2,\"evidence\":\"Both brakes need adjusting\"}],\"urgency\":\"normal\",\"urgency_reason\":null,\"date\":{\"kind\":\"weekday\",\"relative_days\":null,\"weekday\":\"thursday\",\"next_week\":false,\"absolute_date\":null,\"month\":null,\"part_of_day\":null,\"time\":\"10:00\",\"text\":null},\"question\":null,\"missing\":[]}",
+  "usage": {
+    "input_tokens": 1627,
+    "output_tokens": 147
+  },
+  "model": "gpt-5.6-luna-2026-07-09",
+  "latency_ms": 2578,
+  "refusal": null
+}

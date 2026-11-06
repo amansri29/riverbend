@@ -1,0 +1,10 @@
+{
+  "raw_text": "{\"outcome\":\"work_order\",\"flag_reason\":null,\"flag_detail\":null,\"language\":\"en\",\"customer_name\":\"Greta\",\"bike_type\":null,\"bike_count\":2,\"issues\":[],\"services\":[{\"code\":\"TUNE_BASIC\",\"quantity\":2,\"evidence\":\"Basic tune-up for my daughter's bike and mine\"}],\"urgency\":\"normal\",\"urgency_reason\":null,\"date\":{\"kind\":\"weekday\",\"relative_days\":null,\"weekday\":\"saturday\",\"next_week\":false,\"absolute_date\":null,\"month\":null,\"part_of_day\":null,\"time\":null,\"text\":null},\"question\":null,\"missing\":[]}",
+  "usage": {
+    "input_tokens": 1621,
+    "output_tokens": 135
+  },
+  "model": "gpt-5.6-luna-2026-07-09",
+  "latency_ms": 1565,
+  "refusal": null
+}

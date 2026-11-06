@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 Weekday = Literal["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
 PartOfDay = Literal["morning", "afternoon", "evening"]
@@ -35,7 +35,7 @@ class DateExpr(StrictModel):
     absolute_date: str | None  # YYYY-MM-DD
     month: int | None  # 1..12, for "sometime in October"
     part_of_day: PartOfDay | None
-    time: str | None  # HH:MM, 24h
+    time: str | None = Field(description="Clock time as 24-hour HH:MM, e.g. 16:00 for '4pm'; null if none given")
     text: str | None  # the verbatim phrase, e.g. "any day next week"
 
 

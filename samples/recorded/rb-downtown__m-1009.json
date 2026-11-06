@@ -1,0 +1,10 @@
+{
+  "raw_text": "{\"outcome\":\"flag_for_staff\",\"flag_reason\":\"wrong_shop\",\"flag_detail\":\"Message is addressed to Lakeshore team, but it was received by Riverbend Cycles Downtown.\",\"language\":\"en\",\"customer_name\":\"Jo\",\"bike_type\":\"gravel bike\",\"bike_count\":1,\"issues\":[\"Replace both tires\"],\"services\":[{\"code\":\"TIRE_REPLACE\",\"quantity\":2,\"evidence\":\"replace both tires\"}],\"urgency\":\"normal\",\"urgency_reason\":null,\"date\":{\"kind\":\"weekday\",\"relative_days\":null,\"weekday\":\"sunday\",\"next_week\":false,\"absolute_date\":null,\"month\":null,\"part_of_day\":null,\"time\":null,\"text\":null},\"question\":null,\"missing\":[]}",
+  "usage": {
+    "input_tokens": 1632,
+    "output_tokens": 210
+  },
+  "model": "gpt-5.6-luna-2026-07-09",
+  "latency_ms": 3235,
+  "refusal": null
+}

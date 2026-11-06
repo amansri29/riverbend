@@ -1,0 +1,10 @@
+{
+  "raw_text": "{\"outcome\":\"work_order\",\"flag_reason\":null,\"flag_detail\":null,\"language\":\"en\",\"customer_name\":null,\"bike_type\":null,\"bike_count\":1,\"issues\":[\"Chain replacement\"],\"services\":[{\"code\":\"CHAIN_REPLACE\",\"quantity\":1,\"evidence\":\"Chain replacement please.\"}],\"urgency\":\"normal\",\"urgency_reason\":null,\"date\":{\"kind\":\"weekday\",\"relative_days\":null,\"weekday\":\"friday\",\"next_week\":false,\"absolute_date\":null,\"month\":null,\"part_of_day\":null,\"time\":null,\"text\":null},\"question\":null,\"missing\":[]}",
+  "usage": {
+    "input_tokens": 1631,
+    "output_tokens": 132
+  },
+  "model": "gpt-5.6-luna-2026-07-09",
+  "latency_ms": 1745,
+  "refusal": null
+}

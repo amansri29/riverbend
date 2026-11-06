@@ -1,0 +1,10 @@
+{
+  "raw_text": "{\"outcome\":\"work_order\",\"flag_reason\":null,\"flag_detail\":null,\"language\":\"es\",\"customer_name\":\"Carlos\",\"bike_type\":null,\"bike_count\":1,\"issues\":[\"Los frenos de la bicicleta no frenan bien\",\"La cadena hace ruido\"],\"services\":[{\"code\":\"BRAKE_ADJUST\",\"quantity\":2,\"evidence\":\"los frenos de mi bicicleta no frenan bien\"},{\"code\":\"GEAR_ADJUST\",\"quantity\":1,\"evidence\":\"la cadena hace ruido\"}],\"urgency\":\"normal\",\"urgency_reason\":null,\"date\":{\"kind\":\"weekday\",\"relative_days\":null,\"weekday\":\"friday\",\"next_week\":false,\"absolute_date\":null,\"month\":null,\"part_of_day\":null,\"time\":null,\"text\":null},\"question\":null,\"missing\":[]}",
+  "usage": {
+    "input_tokens": 1631,
+    "output_tokens": 171
+  },
+  "model": "gpt-5.6-luna-2026-07-09",
+  "latency_ms": 2041,
+  "refusal": null
+}

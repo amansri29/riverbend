@@ -1,0 +1,10 @@
+{
+  "raw_text": "{\"outcome\":\"work_order\",\"flag_reason\":null,\"flag_detail\":null,\"language\":\"en\",\"customer_name\":\"Ravi\",\"bike_type\":\"mountain bike\",\"bike_count\":1,\"issues\":[\"Needs new brake pads on both wheels\",\"Needs both brakes bled\"],\"services\":[{\"code\":\"BRAKE_PADS\",\"quantity\":2,\"evidence\":\"New pads on both wheels\"},{\"code\":\"BRAKE_BLEED\",\"quantity\":2,\"evidence\":\"bleed both brakes\"}],\"urgency\":\"normal\",\"urgency_reason\":null,\"date\":{\"kind\":\"vague\",\"relative_days\":null,\"weekday\":null,\"next_week\":false,\"absolute_date\":null,\"month\":null,\"part_of_day\":null,\"time\":null,\"text\":\"Saturday\"},\"question\":null,\"missing\":[]}",
+  "usage": {
+    "input_tokens": 1622,
+    "output_tokens": 169
+  },
+  "model": "gpt-5.6-luna-2026-07-09",
+  "latency_ms": 1624,
+  "refusal": null
+}

@@ -1,0 +1,10 @@
+{
+  "raw_text": "{\"outcome\":\"work_order\",\"flag_reason\":null,\"flag_detail\":null,\"language\":\"en\",\"customer_name\":null,\"bike_type\":\"e-bike\",\"bike_count\":1,\"issues\":[\"Battery drains after 10 km, whereas it used to last 50 km.\"],\"services\":[{\"code\":\"EBIKE_DIAG\",\"quantity\":1,\"evidence\":\"E-bike battery drains in 10 km, used to do 50.\"}],\"urgency\":\"normal\",\"urgency_reason\":null,\"date\":{\"kind\":\"weekday\",\"relative_days\":null,\"weekday\":\"saturday\",\"next_week\":false,\"absolute_date\":null,\"month\":null,\"part_of_day\":null,\"time\":null,\"text\":null},\"question\":null,\"missing\":[]}",
+  "usage": {
+    "input_tokens": 1621,
+    "output_tokens": 201
+  },
+  "model": "gpt-5.6-luna-2026-07-09",
+  "latency_ms": 2804,
+  "refusal": null
+}

@@ -39,13 +39,15 @@ def status(client: httpx.Client, base: str, shop_id: str, message_id: str) -> di
     return r.json()
 
 
-def wait_settled(client, base, targets: list[tuple[str, str]], timeout_s: float) -> dict[tuple[str, str], dict]:
-    """Poll customer status until nothing is 'received' (or the deadline passes)."""
+def wait_settled(
+    client, base, targets: list[tuple[str, str]], timeout_s: float, pending_states: set[str] = PENDING
+) -> dict[tuple[str, str], dict]:
+    """Poll customer status until no target is in a pending state (or the deadline passes)."""
     deadline = time.time() + timeout_s
     out: dict[tuple[str, str], dict] = {}
     while True:
         out = {t: status(client, base, *t) for t in targets}
-        pending = [t for t, s in out.items() if s["status"] in PENDING]
+        pending = [t for t, s in out.items() if s["status"] in pending_states]
         if not pending or time.time() > deadline:
             return out
         time.sleep(1.0)
@@ -89,7 +91,14 @@ def main() -> int:
                 {"message_id": f"{mid}-reply", "channel": "web", "body": body, "in_reply_to": mid},
             )
             sent_replies[(shop_id, mid)] = body
-    final = wait_settled(client, args.base, sorted(unique), args.timeout) if sent_replies else first
+    final = dict(first)
+    if sent_replies:
+        # A replied-to order stays "awaiting_your_reply" until the resume job finishes; wait for that too.
+        final.update(
+            wait_settled(
+                client, args.base, sorted(sent_replies), args.timeout, pending_states=PENDING | {"awaiting_your_reply"}
+            )
+        )
 
     # 3. Shop-side view for outcomes, totals and spend.
     views = {sid: shop_view(client, args.base, sid) for sid in KEYS}
