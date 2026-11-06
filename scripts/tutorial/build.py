@@ -242,10 +242,12 @@ def narration_text(sc: dict) -> str:
     return sc["narration"]
 
 
-def tts(engine: str, voice: str | None) -> None:
+def tts(engine: str, voice: str | None, ids: list[str] | None = None) -> None:
     AUDIO.mkdir(parents=True, exist_ok=True)
     load_dotenv()
     for sc in SCENES:
+        if ids and sc["id"] not in ids:
+            continue
         text = narration_text(sc)
         m4a = AUDIO / f"{sc['id']}.m4a"
         key = digest(engine, voice or "", text)
@@ -372,7 +374,7 @@ def main() -> int:
     if a.step in ("render", "all"):
         render()
     if a.step in ("tts", "all"):
-        tts(a.engine, a.voice)
+        tts(a.engine, a.voice, a.ids.split(",") if a.ids else None)
     if a.step in ("script", "all"):
         script_md()
     if a.step in ("assemble", "all"):
