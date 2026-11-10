@@ -1,10 +1,10 @@
 {
-  "raw_text": "{\"outcome\":\"work_order\",\"flag_reason\":null,\"flag_detail\":null,\"language\":\"en\",\"customer_name\":\"Ken\",\"bike_type\":null,\"bike_count\":1,\"issues\":[\"Used bike needs to be looked over before being ridden much\"],\"services\":[{\"code\":\"GENERAL_INSPECT\",\"quantity\":1,\"evidence\":\"want someone to look it over before I ride it much\"}],\"urgency\":\"normal\",\"urgency_reason\":null,\"date\":{\"kind\":\"vague\",\"relative_days\":null,\"weekday\":null,\"next_week\":false,\"absolute_date\":null,\"month\":null,\"part_of_day\":\"morning\",\"time\":null,\"text\":\"Saturday morning\"},\"question\":null,\"missing\":[]}",
+  "raw_text": "{\"outcome\":\"work_order\",\"flag_reason\":null,\"flag_detail\":null,\"language\":\"en\",\"customer_name\":\"Ken\",\"bike_type\":null,\"bike_count\":1,\"issues\":[\"Just bought a used bike and want someone to look it over before I ride it much\"],\"services\":[{\"code\":\"GENERAL_INSPECT\",\"quantity\":1,\"evidence\":\"want someone to look it over before I ride it much\"}],\"urgency\":\"normal\",\"urgency_reason\":null,\"date\":{\"kind\":\"weekday\",\"relative_days\":null,\"weekday\":\"saturday\",\"next_week\":false,\"absolute_date\":null,\"month\":null,\"part_of_day\":\"morning\",\"time\":null,\"text\":null},\"question\":null,\"missing\":[]}",
   "usage": {
     "input_tokens": 1627,
-    "output_tokens": 151
+    "output_tokens": 155
   },
   "model": "gpt-5.6-luna-2026-07-09",
-  "latency_ms": 2747,
+  "latency_ms": 3419,
   "refusal": null
 }

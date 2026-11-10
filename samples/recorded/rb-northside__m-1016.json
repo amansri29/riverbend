@@ -2,9 +2,9 @@
   "raw_text": "{\"outcome\":\"work_order\",\"flag_reason\":null,\"flag_detail\":null,\"language\":\"en\",\"customer_name\":null,\"bike_type\":null,\"bike_count\":1,\"issues\":[\"Gears won't shift into the two biggest cogs.\"],\"services\":[{\"code\":\"GEAR_ADJUST\",\"quantity\":1,\"evidence\":\"Gears won't shift into the two biggest cogs.\"}],\"urgency\":\"normal\",\"urgency_reason\":null,\"date\":{\"kind\":\"relative_days\",\"relative_days\":1,\"weekday\":null,\"next_week\":false,\"absolute_date\":null,\"month\":null,\"part_of_day\":null,\"time\":null,\"text\":null},\"question\":null,\"missing\":[]}",
   "usage": {
     "input_tokens": 1619,
-    "output_tokens": 186
+    "output_tokens": 148
   },
   "model": "gpt-5.6-luna-2026-07-09",
-  "latency_ms": 2730,
+  "latency_ms": 3832,
   "refusal": null
 }

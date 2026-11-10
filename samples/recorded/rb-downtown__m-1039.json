@@ -1,10 +1,10 @@
 {
-  "raw_text": "{\"outcome\":\"work_order\",\"flag_reason\":null,\"flag_detail\":null,\"language\":\"en\",\"customer_name\":null,\"bike_type\":\"mountain bike\",\"bike_count\":1,\"issues\":[\"Flat on the rear wheel\"],\"services\":[{\"code\":\"TUNE_FULL\",\"quantity\":1,\"evidence\":\"Full overhaul on my mountain bike\"},{\"code\":\"FLAT_FIX\",\"quantity\":1,\"evidence\":\"it has a flat on the rear too\"}],\"urgency\":\"normal\",\"urgency_reason\":null,\"date\":{\"kind\":\"weekday\",\"relative_days\":null,\"weekday\":\"monday\",\"next_week\":true,\"absolute_date\":null,\"month\":null,\"part_of_day\":null,\"time\":null,\"text\":null},\"question\":null,\"missing\":[]}",
+  "raw_text": "{\"outcome\":\"work_order\",\"flag_reason\":null,\"flag_detail\":null,\"language\":\"en\",\"customer_name\":null,\"bike_type\":\"mountain bike\",\"bike_count\":1,\"issues\":[\"Flat on the rear wheel\"],\"services\":[{\"code\":\"TUNE_FULL\",\"quantity\":1,\"evidence\":\"Full overhaul\"},{\"code\":\"FLAT_FIX\",\"quantity\":1,\"evidence\":\"flat on the rear\"}],\"urgency\":\"normal\",\"urgency_reason\":null,\"date\":{\"kind\":\"weekday\",\"relative_days\":null,\"weekday\":\"monday\",\"next_week\":true,\"absolute_date\":null,\"month\":null,\"part_of_day\":null,\"time\":null,\"text\":null},\"question\":null,\"missing\":[]}",
   "usage": {
     "input_tokens": 1623,
-    "output_tokens": 161
+    "output_tokens": 153
   },
   "model": "gpt-5.6-luna-2026-07-09",
-  "latency_ms": 1562,
+  "latency_ms": 2962,
   "refusal": null
 }

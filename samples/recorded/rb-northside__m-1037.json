@@ -1,10 +1,10 @@
 {
-  "raw_text": "{\"outcome\":\"work_order\",\"flag_reason\":null,\"flag_detail\":null,\"language\":\"en\",\"customer_name\":null,\"bike_type\":null,\"bike_count\":1,\"issues\":[\"Hydraulic brake bleed requested for the rear wheel\"],\"services\":[{\"code\":\"BRAKE_BLEED\",\"quantity\":1,\"evidence\":\"Hydraulic brake bleed, rear only\"}],\"urgency\":\"normal\",\"urgency_reason\":null,\"date\":{\"kind\":\"weekday\",\"relative_days\":null,\"weekday\":\"saturday\",\"next_week\":false,\"absolute_date\":null,\"month\":null,\"part_of_day\":null,\"time\":\"11:00\",\"text\":null},\"question\":null,\"missing\":[]}",
+  "raw_text": "{\"outcome\":\"work_order\",\"flag_reason\":null,\"flag_detail\":null,\"language\":\"en\",\"customer_name\":null,\"bike_type\":null,\"bike_count\":1,\"issues\":[\"Hydraulic brake bleed, rear only\"],\"services\":[{\"code\":\"BRAKE_BLEED\",\"quantity\":1,\"evidence\":\"Hydraulic brake bleed, rear only\"}],\"urgency\":\"normal\",\"urgency_reason\":null,\"date\":{\"kind\":\"weekday\",\"relative_days\":null,\"weekday\":\"saturday\",\"next_week\":false,\"absolute_date\":null,\"month\":null,\"part_of_day\":null,\"time\":\"11:00\",\"text\":null},\"question\":null,\"missing\":[]}",
   "usage": {
     "input_tokens": 1617,
-    "output_tokens": 220
+    "output_tokens": 144
   },
   "model": "gpt-5.6-luna-2026-07-09",
-  "latency_ms": 2439,
+  "latency_ms": 2811,
   "refusal": null
 }

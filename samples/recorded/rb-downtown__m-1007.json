@@ -1,10 +1,10 @@
 {
-  "raw_text": "{\"outcome\":\"work_order\",\"flag_reason\":null,\"flag_detail\":null,\"language\":\"en\",\"customer_name\":\"Dana\",\"bike_type\":\"1987 steel touring bike\",\"bike_count\":1,\"issues\":[],\"services\":[{\"code\":\"TUNE_FULL\",\"quantity\":1,\"evidence\":\"the full overhaul\"}],\"urgency\":\"normal\",\"urgency_reason\":null,\"date\":{\"kind\":\"month\",\"relative_days\":null,\"weekday\":null,\"next_week\":false,\"absolute_date\":null,\"month\":10,\"part_of_day\":null,\"time\":null,\"text\":null},\"question\":null,\"missing\":[]}",
+  "raw_text": "{\"outcome\":\"work_order\",\"flag_reason\":null,\"flag_detail\":null,\"language\":\"en\",\"customer_name\":\"Dana\",\"bike_type\":\"1987 steel touring bike\",\"bike_count\":1,\"issues\":[],\"services\":[{\"code\":\"TUNE_FULL\",\"quantity\":1,\"evidence\":\"I'd like the full overhaul\"}],\"urgency\":\"normal\",\"urgency_reason\":null,\"date\":{\"kind\":\"month\",\"relative_days\":null,\"weekday\":null,\"next_week\":false,\"absolute_date\":null,\"month\":10,\"part_of_day\":null,\"time\":null,\"text\":null},\"question\":null,\"missing\":[]}",
   "usage": {
     "input_tokens": 1628,
-    "output_tokens": 131
+    "output_tokens": 133
   },
   "model": "gpt-5.6-luna-2026-07-09",
-  "latency_ms": 2346,
+  "latency_ms": 4441,
   "refusal": null
 }

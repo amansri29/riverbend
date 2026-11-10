@@ -13,5 +13,6 @@ Honest record of time spent, as the brief asks. Planning with an AI assistant co
 | 2026-11-05 | Code-quality pass: docstrings on every public module, class and function; SQL moved out of the route into repositories; exception names per PEP 8; pydocstyle and naming rules enforced in ruff | 0.5 |
 | 2026-11-05 | Azure provider on the v1 surface, model choice (gpt-5.6-luna), end-to-end checks, architecture diagram, timestamps in shop time | 1.0 |
 | 2026-11-06 | Real 40-sample run (two passes: time-format fix, runner wait fix), date recovery from vague text, tutorial video pipeline and narration | 2.5 |
+| 2026-11-10 | Docker Desktop recovered (stale backend); Compose path verified end to end with the 40 samples; host ports made configurable | 0.5 |
 
-Running total: 10.5 h. Over the brief's eight by about two and a half, most of it the video and the second results pass; stated here rather than rounded down. Not done: the Compose path was written but verified only on the native stack (Docker Desktop would not start on the build machine).
+Running total: 11.0 h. Over the brief's eight by three, most of it the video and the second results pass; stated here rather than rounded down. The Compose path was verified after submission, on 2026-11-10; at submission time it had only been run on the native stack.

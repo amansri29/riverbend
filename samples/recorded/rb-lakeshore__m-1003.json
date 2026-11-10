@@ -1,10 +1,10 @@
 {
-  "raw_text": "{\"outcome\":\"work_order\",\"flag_reason\":null,\"flag_detail\":null,\"language\":\"en\",\"customer_name\":\"Marcus\",\"bike_type\":\"hybrid\",\"bike_count\":1,\"issues\":[\"The chain keeps falling off when shifting to the small ring.\"],\"services\":[{\"code\":\"GEAR_ADJUST\",\"quantity\":1,\"evidence\":\"the chain ... keeps falling off when I shift to the small ring\"}],\"urgency\":\"normal\",\"urgency_reason\":null,\"date\":{\"kind\":\"weekday\",\"relative_days\":null,\"weekday\":\"saturday\",\"next_week\":false,\"absolute_date\":null,\"month\":null,\"part_of_day\":null,\"time\":null,\"text\":null},\"question\":null,\"missing\":[]}",
+  "raw_text": "{\"outcome\":\"work_order\",\"flag_reason\":null,\"flag_detail\":null,\"language\":\"en\",\"customer_name\":\"Marcus\",\"bike_type\":\"hybrid\",\"bike_count\":1,\"issues\":[\"Chain keeps falling off when shifting to the small ring\"],\"services\":[{\"code\":\"GEAR_ADJUST\",\"quantity\":1,\"evidence\":\"The chain on my hybrid keeps falling off when I shift to the small ring.\"}],\"urgency\":\"normal\",\"urgency_reason\":null,\"date\":{\"kind\":\"weekday\",\"relative_days\":null,\"weekday\":\"saturday\",\"next_week\":false,\"absolute_date\":null,\"month\":null,\"part_of_day\":null,\"time\":null,\"text\":null},\"question\":null,\"missing\":[]}",
   "usage": {
     "input_tokens": 1625,
-    "output_tokens": 220
+    "output_tokens": 232
   },
   "model": "gpt-5.6-luna-2026-07-09",
-  "latency_ms": 3404,
+  "latency_ms": 5660,
   "refusal": null
 }

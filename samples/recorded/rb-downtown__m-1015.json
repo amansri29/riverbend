@@ -5,6 +5,6 @@
     "output_tokens": 131
   },
   "model": "gpt-5.6-luna-2026-07-09",
-  "latency_ms": 2697,
+  "latency_ms": 3477,
   "refusal": null
 }

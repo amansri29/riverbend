@@ -21,7 +21,7 @@ Prerequisites: Docker. Copy `.env.example` to `.env`. With `LLM_PROVIDER=fake` (
 model key is needed; the pipeline runs on a stand-in provider.
 
 ```
-make run        # Postgres + Pub/Sub emulator + migrate/seed + API :8080 + worker :8081
+make run        # Postgres (host :5433) + Pub/Sub emulator + migrate/seed + API :8080 + worker :8081
 make samples    # send the 40 sample messages, reply to follow-ups, write docs/results.md
 make test       # 78 tests; DB tests need Postgres (docker compose up postgres, or a local one)
 ```
@@ -30,6 +30,8 @@ To use the real model, set in `.env`: `LLM_PROVIDER=azure`, `AZURE_OPENAI_ENDPOI
 `AZURE_OPENAI_API_KEY`, `AZURE_OPENAI_DEPLOYMENT`, `AZURE_OPENAI_API_VERSION`, and the two
 `LLM_PRICE_*` rates for the spend ledger. Responses are recorded to `samples/recorded/` so the
 same run can be replayed offline with `LLM_PROVIDER=fake`.
+
+Host ports are overridable if something already listens: `API_PORT=8090 WORKER_PORT=8091 POSTGRES_PORT=5434 make run`.
 
 Dev API keys are `dev-key-rb-downtown`, `dev-key-rb-northside`, `dev-key-rb-lakeshore`.
 
