@@ -67,6 +67,8 @@ class Settings(BaseSettings):
 
     # Misc
     catalog_path: str = "catalog/catalog.json"
+    log_format: Literal["text", "json"] = "text"  # json on Cloud Run (set in Terraform), text in a terminal
+    log_level: str = "INFO"
     dev_api_keys: bool = True  # seed deterministic dev keys (dev-key-<shop_id>)
 
     @model_validator(mode="after")

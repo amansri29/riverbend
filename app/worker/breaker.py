@@ -17,6 +17,11 @@ class CircuitBreaker:
         self._failures = 0
         self._opened_at: float | None = None
 
+    @property
+    def failures(self) -> int:
+        """Consecutive failures seen since the last success (for logs)."""
+        return self._failures
+
     def record_failure(self) -> None:
         self._failures += 1
         if self._failures >= self.failure_threshold:

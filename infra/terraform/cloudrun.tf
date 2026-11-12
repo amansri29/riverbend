@@ -115,6 +115,7 @@ resource "google_cloud_run_v2_service" "worker" {
           AZURE_OPENAI_DEPLOYMENT  = var.azure_openai_deployment
           AZURE_OPENAI_API_VERSION = var.azure_openai_api_version
           LLM_REASONING_EFFORT     = var.llm_reasoning_effort
+          LOG_FORMAT               = "json"
           LLM_RECORD_DIR           = ""
         })
         content {

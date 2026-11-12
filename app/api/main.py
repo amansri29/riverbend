@@ -19,7 +19,7 @@ def create_app(
 ) -> FastAPI:
     """Build the API app; the database and dispatcher are injectable for tests."""
     settings = settings or get_settings()
-    applog.configure()
+    applog.configure(settings.log_level, settings.log_format)
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):

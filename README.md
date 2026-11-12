@@ -76,6 +76,37 @@ curl -s localhost:8080/shops/rb-downtown/work-orders -H 'X-API-Key: dev-key-rb-d
    until the month rolls or the cap is raised. Customers see neutral statuses; shops see the
    truth in the list endpoint's `ai` and `budget` blocks.
 
+## Follow one message in the logs
+
+Every stage logs one line carrying `shop`, `message`, `job`, `kind` and `attempt`, so a single
+message can be followed by eye with `docker compose logs -f worker` (set `LOG_FORMAT=json` for
+Cloud Logging). "Brakes squeal.", then the customer's reply, in the worker log:
+
+```
+ingest.accepted     shop=rb-downtown message=m-1027 job=c2e98f09           message accepted            (api)
+push.received       shop=rb-downtown job=c2e98f09 kind=extract             push received from the broker
+job.claimed         ... attempt=1                                          job claimed, lease 120 s
+stage.transcript    ...                                                    1 turn(s) for the model  [questions_asked=0]
+budget.reserved     ...                                                    worst case reserved before the call  [reserved_micros=12606]
+model.call          ...                                                    calling azure_openai (attempt 1 of 2)
+model.response      ...                                                    gpt-5.6-luna answered in 4120 ms  [input_tokens=1608 output_tokens=216 proposed=ask_customer services=['BRAKE_ADJUSTx1'] date=none]
+model.valid         ...                                                    output passed schema and business rules
+budget.settled      ...                                                    reservation settled to actual cost  [spent_micros=834]
+decide              ...                                                    code decided AskCustomer (model proposed ask_customer)  [missing=('requested_date',)]
+outcome.question    ...                                                    one question queued for the customer  [question=When would you like us to work on the bike?]
+job.done            ...                                                    job finished
+push.received       shop=rb-downtown job=0d3e6b50 kind=resume              push received from the broker
+stage.transcript    ... message=m-1027-reply                               3 turn(s) for the model  [questions_asked=1]
+model.response      ...                                                    gpt-5.6-luna answered in 2834 ms  [proposed=work_order services=['BRAKE_ADJUSTx2'] date=weekday]
+decide              ...                                                    code decided CreateOrder (model proposed work_order)  [requested_date=2026-09-26 date_note=morning]
+outcome.resumed     ...                                                    order reopened from the reply, total 36.00 USD
+```
+
+Other events you will see: `ingest.duplicate`, `job.skipped` (redelivery), `breaker.open`,
+`provider.retry`, `job.parked`, `budget.cap`, `model.invalid`, `extraction.rejected`,
+`decide.override`, `outcome.order`, `outcome.review`, `outcome.no_order`,
+`outcome.cancellation`, `resume.deferred`, `resume.amendment`, `dlq.received`, `sweep`.
+
 ## Repository map
 
 ```

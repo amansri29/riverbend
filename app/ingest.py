@@ -93,8 +93,15 @@ async def publish_job(db: Database, dispatcher: Dispatcher, job: dict) -> bool:
     try:
         await dispatcher.publish(env)
     except Exception:  # noqa: BLE001
-        log.exception("publish failed; outbox will retry", extra={"job_id": env.job_id, "shop_id": env.shop_id})
+        log.exception(
+            "publish failed; outbox will retry",
+            extra={"job_id": env.job_id, "shop_id": env.shop_id, "event": "job.publish_failed"},
+        )
         return False
     async with db.tx() as conn:
         await jobs.mark_published(conn, job["id"])
+    log.info(
+        "job published to the broker",
+        extra={"shop_id": env.shop_id, "job_id": env.job_id, "kind": env.kind, "event": "job.published"},
+    )
     return True

@@ -31,7 +31,7 @@ def create_worker_app(
 ) -> FastAPI:
     """Build the worker app: push, DLQ and sweep endpoints, and the optional in-process sweep loop."""
     settings = settings or get_settings()
-    applog.configure()
+    applog.configure(settings.log_level, settings.log_format)
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
@@ -64,6 +64,10 @@ def create_worker_app(
     @app.post("/pubsub/push")
     async def push(request: Request) -> Response:
         env = await _envelope(request)
+        log.info(
+            "push received from the broker",
+            extra={"shop_id": env.shop_id, "job_id": env.job_id, "kind": env.kind, "event": "push.received"},
+        )
         pipeline: Pipeline = app.state.pipeline
         result = await pipeline.run_job(UUID(env.job_id))
         # 2xx acks. 5xx makes Pub/Sub redeliver with the subscription's backoff policy.
@@ -74,6 +78,10 @@ def create_worker_app(
     @app.post("/pubsub/dlq")
     async def dlq(request: Request) -> Response:
         env = await _envelope(request)
+        log.warning(
+            "dead-letter push received",
+            extra={"shop_id": env.shop_id, "job_id": env.job_id, "kind": env.kind, "event": "dlq.received"},
+        )
         await app.state.pipeline.dead_letter(UUID(env.job_id))
         return Response(status_code=204)
 

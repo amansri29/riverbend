@@ -33,6 +33,18 @@ from app.worker.breaker import CircuitBreaker
 log = logging.getLogger("pipeline")
 
 
+def _ctx(job: dict, msg: dict | None = None) -> dict:
+    """Correlation fields every pipeline log line carries, so one message can be followed by eye."""
+    c = {"job_id": str(job["id"]), "shop_id": job["shop_id"], "kind": job["kind"], "attempt": job["attempts"]}
+    if msg is not None:
+        c["message_id"] = msg["message_id"]
+    return c
+
+
+def _ev(level: int, event: str, text: str, ctx: dict, **fields: object) -> None:
+    log.log(level, text, extra={**ctx, **fields, "event": event})
+
+
 class JobResult(StrEnum):
     """What a run tells the push handler: DONE and SKIPPED ack, PARKED acks and leaves the broker, RETRY is a 503."""
 
@@ -68,14 +80,21 @@ class Pipeline:
             await messages.set_outcome(
                 conn, job["shop_id"], job["message_pk"], "failed", "AI provider unavailable after retries"
             )
-        log.error("job dead-lettered", extra={"job_id": str(job_id), "shop_id": job["shop_id"], "event": "job.dlq"})
+        _ev(logging.ERROR, "job.dlq", "broker gave up after max attempts; message marked failed for staff", _ctx(job))
 
     async def run_job(self, job_id: UUID) -> JobResult:
         async with self.db.tx() as conn:
             job = await jobs.claim(conn, job_id)
         if job is None:
+            _ev(
+                logging.INFO,
+                "job.skipped",
+                "nothing to do: already done or held by another worker",
+                {"job_id": str(job_id)},
+            )
             return JobResult.SKIPPED
-        ctx = {"job_id": str(job_id), "shop_id": job["shop_id"]}
+        ctx = _ctx(job)
+        _ev(logging.INFO, "job.claimed", "job claimed, lease 120 s", ctx)
         try:
             result = await self._run(job)
         except Exception as e:  # noqa: BLE001 - an unexpected crash is retryable from the broker's view
@@ -100,6 +119,8 @@ class Pipeline:
             if msg is None:
                 await jobs.fail(conn, job_id, "message row missing")
                 return JobResult.DONE
+            ctx = _ctx(job, msg)
+            _ev(logging.INFO, "stage.load", f"{job['kind']} job for message via {msg['channel']}", ctx)
             if job["kind"] == "resume":
                 prep = await self._prepare_resume(conn, job, msg, shop, now)
             else:
@@ -107,11 +128,24 @@ class Pipeline:
             if isinstance(prep, JobResult):
                 return prep
         turns, state, order, root_msg = prep
+        _ev(
+            logging.INFO,
+            "stage.transcript",
+            f"{len(turns)} turn(s) for the model",
+            ctx,
+            questions_asked=state.questions_asked,
+        )
 
         # Stage 2: breaker. An outage must not burn delivery attempts.
         if self.breaker.is_open():
-            await self._park(
-                job_id, "provider_unavailable", now + timedelta(seconds=self.breaker.retry_after_seconds() or 1)
+            retry_after = self.breaker.retry_after_seconds() or 1
+            await self._park(job_id, "provider_unavailable", now + timedelta(seconds=retry_after))
+            _ev(
+                logging.WARNING,
+                "breaker.open",
+                "provider breaker open; parked without a model call",
+                ctx,
+                retry_after_s=retry_after,
             )
             return JobResult.PARKED
 
@@ -133,11 +167,23 @@ class Pipeline:
             next_month = (month.replace(day=28) + timedelta(days=4)).replace(day=1)
             run_after = datetime.combine(next_month, datetime.min.time(), tzinfo=ZoneInfo(shop.timezone))
             await self._park(job_id, "budget_exceeded", run_after)
-            log.warning(
-                "budget cap reached; job parked",
-                extra={"job_id": str(job_id), "shop_id": shop_id, "event": "budget.cap"},
+            _ev(
+                logging.WARNING,
+                "budget.cap",
+                "monthly cap reached; parked until the cap is raised or next month",
+                ctx,
+                cap_micros=shop.monthly_cap_micros,
+                run_after=run_after.date(),
             )
             return JobResult.PARKED
+        _ev(
+            logging.INFO,
+            "budget.reserved",
+            "worst case reserved before the call",
+            ctx,
+            reserved_micros=reserve_micros,
+            month=month,
+        )
 
         # Stage 4: the model, with one corrective retry on validation failure.
         received_at = root_msg["received_at"]
@@ -146,6 +192,13 @@ class Pipeline:
         parsed: Extraction | None = None
         errors: list[str] = []
         for attempt_no in (1, 2):
+            _ev(
+                logging.INFO,
+                "model.call",
+                f"calling {self.provider.name} (attempt {attempt_no} of 2)",
+                ctx,
+                turns=len(turns),
+            )
             try:
                 result = await self.provider.extract(
                     system=self.system_prompt,
@@ -177,15 +230,26 @@ class Pipeline:
                 if e.retryable:
                     async with self.db.tx() as conn:
                         await jobs.release_for_retry(conn, job_id, str(e))
-                    log.warning(
-                        "provider error; handing back to broker",
-                        extra={"job_id": str(job_id), "shop_id": shop_id, "event": "provider.retry"},
+                    _ev(
+                        logging.WARNING,
+                        "provider.retry",
+                        f"provider failed ({type(e).__name__}); handing back to the broker",
+                        ctx,
+                        error=str(e)[:120],
+                        breaker_failures=self.breaker.failures,
                     )
                     return JobResult.RETRY
                 async with self.db.tx() as conn:
                     await jobs.fail(conn, job_id, str(e))
                 async with self.db.tenant_tx(shop_id) as conn:
                     await messages.set_outcome(conn, shop_id, msg["id"], "failed", f"provider rejected: {e}")
+                _ev(
+                    logging.ERROR,
+                    "provider.rejected",
+                    "provider rejected the request; not retryable",
+                    ctx,
+                    error=str(e)[:120],
+                )
                 return JobResult.DONE
 
             self.breaker.record_success()
@@ -196,6 +260,28 @@ class Pipeline:
                 errors = [f"output did not match the schema ({result.refusal or 'unparseable'})"]
             else:
                 errors = validate_extraction(parsed, self.catalog, received_at)
+            _ev(
+                logging.INFO,
+                "model.response",
+                f"{result.model} answered in {result.latency_ms} ms",
+                ctx,
+                input_tokens=result.usage.input_tokens,
+                output_tokens=result.usage.output_tokens,
+                cost_micros=cost,
+                proposed=parsed.outcome if parsed else None,
+                services=[f"{p.code}x{p.quantity}" for p in parsed.services] if parsed else None,
+                date=parsed.date.kind if parsed else None,
+            )
+            if errors:
+                _ev(
+                    logging.WARNING,
+                    "model.invalid",
+                    "output failed validation" + ("; asking for a correction" if attempt_no == 1 else "; giving up"),
+                    ctx,
+                    errors=errors,
+                )
+            else:
+                _ev(logging.INFO, "model.valid", "output passed schema and business rules", ctx)
             async with self.db.tenant_tx(shop_id) as conn:
                 await llm_calls.record(
                     conn,
@@ -230,19 +316,27 @@ class Pipeline:
             await budget.settle(
                 conn, shop_id=shop_id, job_id=job_id, attempt=job["attempts"], actual_micros=spent_micros
             )
+            _ev(logging.INFO, "budget.settled", "reservation settled to actual cost", ctx, spent_micros=spent_micros)
             if errors or parsed is None:
                 # Requirement 4: output that fails validation is never saved as a work order.
                 await messages.set_outcome(conn, shop_id, msg["id"], "rejected_invalid_output", "; ".join(errors))
                 await jobs.fail(conn, job_id, "invalid model output after corrective retry")
-                log.warning(
-                    "model output rejected",
-                    extra={"job_id": str(job_id), "shop_id": shop_id, "event": "extraction.rejected"},
-                )
+                _ev(logging.WARNING, "extraction.rejected", "invalid after the corrective retry; nothing saved", ctx)
                 return JobResult.DONE
 
             # Stage 5: decide and write.
             resolved = resolve(parsed.date, received_at)
             decision = decide(parsed, state, resolved)
+            _ev(
+                logging.INFO,
+                "decide",
+                f"code decided {type(decision).__name__} (model proposed {parsed.outcome})",
+                ctx,
+                requested_date=resolved.date,
+                date_note=resolved.note,
+                missing=getattr(decision, "missing", None),
+                reason=getattr(decision, "reason", None),
+            )
             await self._apply(conn, job, msg, root_msg, shop, parsed, resolved, decision, order, now)
             await jobs.complete(conn, job_id)
         return JobResult.DONE
@@ -252,6 +346,7 @@ class Pipeline:
         existing = await work_orders.get_by_source(conn, shop.id, msg["id"])
         if existing is not None or msg["outcome"] is not None:
             await jobs.complete(conn, job["id"])  # a job that ran twice: the effect already exists
+            _ev(logging.INFO, "job.skipped", "message already processed (redelivery); no model call", _ctx(job, msg))
             return JobResult.SKIPPED
         turns = build_turns(
             shop_name=shop.name, channel=msg["channel"], received_at=msg["received_at"], body=msg["body"]
@@ -269,9 +364,22 @@ class Pipeline:
             if job["attempts"] > self.settings.max_resume_deferrals:
                 await messages.set_outcome(conn, shop.id, msg["id"], "failed", "original message never processed")
                 await jobs.fail(conn, job["id"], "parent never processed")
+                _ev(
+                    logging.ERROR,
+                    "resume.orphaned",
+                    "original never processed after repeated deferrals",
+                    _ctx(job, msg),
+                )
                 return JobResult.DONE
             await jobs.park(
                 conn, job["id"], "parent_pending", now + timedelta(seconds=self.settings.resume_defer_seconds)
+            )
+            _ev(
+                logging.INFO,
+                "resume.deferred",
+                "reply arrived before its original was processed; parked briefly",
+                _ctx(job, msg),
+                defer_s=self.settings.resume_defer_seconds,
             )
             return JobResult.PARKED
         if order["status"] != "awaiting_customer":
@@ -288,6 +396,13 @@ class Pipeline:
             )
             await messages.set_outcome(conn, shop.id, msg["id"], "amendment", str(order["id"]))
             await jobs.complete(conn, job["id"])
+            _ev(
+                logging.INFO,
+                "resume.amendment",
+                "order no longer awaiting a reply; text attached, sent to staff review",
+                _ctx(job, msg),
+                order_id=str(order["id"]),
+            )
             return JobResult.DONE
         turns = build_turns(
             shop_name=shop.name,
@@ -328,6 +443,7 @@ class Pipeline:
                 + f" = {est.total_usd} USD"
             )
             await messages.set_outcome(conn, shop_id, msg["id"], "no_work_order", detail)
+            _ev(logging.INFO, "outcome.no_order", f"no work order: {decision.reason}", _ctx(job, msg), detail=detail)
             return
 
         if isinstance(decision, NeedsReview):
@@ -353,6 +469,13 @@ class Pipeline:
                     await messages.set_outcome(
                         conn, shop_id, msg["id"], "cancellation_flagged", str(candidates[0]["id"])
                     )
+                    _ev(
+                        logging.INFO,
+                        "outcome.cancellation",
+                        "matched an open order by customer name; flagged for staff",
+                        _ctx(job, msg),
+                        order_id=str(candidates[0]["id"]),
+                    )
                     return
             if is_resume and order is not None:
                 await work_orders.update(
@@ -363,6 +486,14 @@ class Pipeline:
             await messages.set_outcome(conn, shop_id, msg["id"], "needs_review", decision.reason)
             if is_resume:
                 await messages.set_outcome(conn, shop_id, root_msg["id"], "needs_review", decision.reason)
+            _ev(
+                logging.INFO,
+                "outcome.review",
+                f"sent to staff review: {decision.reason}",
+                _ctx(job, msg),
+                detail=decision.detail,
+                total_cents=est.total_cents,
+            )
             return
 
         if isinstance(decision, AskCustomer):
@@ -380,13 +511,24 @@ class Pipeline:
                 conn, shop_id=shop_id, work_order_id=row["id"], channel=msg["channel"], body=decision.question
             )
             await messages.set_outcome(conn, shop_id, msg["id"], "question_asked", ", ".join(decision.missing))
+            _ev(
+                logging.INFO,
+                "outcome.question",
+                "one question queued for the customer; order awaiting reply",
+                _ctx(job, msg),
+                order_id=str(row["id"]),
+                missing=list(decision.missing),
+                question=decision.question,
+            )
             return
 
         assert isinstance(decision, CreateOrder)
         if decision.overrode_model:
-            log.info(
-                "model wanted to ask; order was complete",
-                extra={"job_id": str(job["id"]), "shop_id": shop_id, "event": "decide.override"},
+            _ev(
+                logging.INFO,
+                "decide.override",
+                "model wanted to ask, but service and date are present; creating the order",
+                _ctx(job, msg),
             )
         if is_resume and order is not None:
             await work_orders.update(
@@ -400,16 +542,41 @@ class Pipeline:
             )
             await messages.set_outcome(conn, shop_id, msg["id"], "resumed", str(order["id"]))
             await messages.set_outcome(conn, shop_id, root_msg["id"], "work_order", str(order["id"]))
+            _ev(
+                logging.INFO,
+                "outcome.resumed",
+                f"order reopened from the reply, total {est.total_usd} USD",
+                _ctx(job, msg),
+                order_id=str(order["id"]),
+                requested_date=resolved.date,
+                services=[f"{i.code}x{i.quantity}" for i in est.line_items],
+            )
         else:
             row, _ = await work_orders.create(
                 conn, shop_id=shop_id, source_message_id=msg["id"], status="open", **fields
             )
             await messages.set_outcome(conn, shop_id, msg["id"], "work_order", str(row["id"]))
+            _ev(
+                logging.INFO,
+                "outcome.order",
+                f"work order open, total {est.total_usd} USD (priced in code)",
+                _ctx(job, msg),
+                order_id=str(row["id"]),
+                requested_date=resolved.date,
+                services=[f"{i.code}x{i.quantity}" for i in est.line_items],
+            )
 
     # ------------------------------------------------------------------ helpers
     async def _park(self, job_id: UUID, reason: str, run_after: datetime) -> None:
         async with self.db.tx() as conn:
             await jobs.park(conn, job_id, reason, run_after)
+        _ev(
+            logging.INFO,
+            "job.parked",
+            f"left the broker: {reason}; the sweeper republishes when due",
+            {"job_id": str(job_id)},
+            run_after=run_after.isoformat(timespec="seconds"),
+        )
 
     def _worst_case_micros(self, prompt_chars: int, *, calls: int) -> int:
         s = self.settings

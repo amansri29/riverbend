@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from datetime import UTC, datetime, timedelta
 from zoneinfo import ZoneInfo
 
@@ -27,6 +28,7 @@ from app.ingest import UnknownReferenceError, accept_message, normalise_received
 from app.repo import budget, jobs, llm_calls, messages, work_orders
 from app.repo.budget import current_month
 
+log = logging.getLogger("api")
 router = APIRouter()
 
 
@@ -55,6 +57,15 @@ async def post_message(request: Request, payload: MessageIn, t: Tenant = Depends
             in_reply_to=payload.in_reply_to,
         )
     except UnknownReferenceError as e:
+        log.warning(
+            "reply to an unknown message rejected",
+            extra={
+                "shop_id": t.shop.id,
+                "message_id": payload.message_id,
+                "event": "ingest.rejected",
+                "in_reply_to": payload.in_reply_to,
+            },
+        )
         raise HTTPException(status_code=422, detail=f"unknown in_reply_to {e}") from e
     status_url = str(request.url_for("get_message_status", shop_id=t.shop.id, message_id=payload.message_id))
     if not result.created:

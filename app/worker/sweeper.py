@@ -30,5 +30,8 @@ async def sweep_once(db: Database, dispatcher: Dispatcher, settings: Settings) -
         async with db.tenant_tx(shop_id) as conn:
             expired += await work_orders.expire_stale(conn, shop_id, older_than_days=settings.followup_expiry_days)
     if republished or expired:
-        log.info("sweep", extra={"event": "sweep", "republished": republished, "expired": expired})
+        log.info(
+            f"sweep: republished {republished}, expired {expired}",
+            extra={"event": "sweep", "republished": republished, "expired": expired},
+        )
     return {"republished": republished, "expired": expired, "due": len(due)}
