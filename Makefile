@@ -1,4 +1,4 @@
-.PHONY: run stop logs logs-all test coverage lint migrate samples fmt note
+.PHONY: run stop logs logs-all psql psql-app test coverage lint migrate samples fmt note
 
 run:            ## One-command local run: Postgres + Pub/Sub emulator + API + worker
 	docker compose up --build
@@ -11,6 +11,12 @@ logs:           ## Follow the API and worker (one line per stage; grep 'message=
 
 logs-all:       ## Everything, including the Pub/Sub emulator and Postgres (noisy; for delivery problems)
 	docker compose logs -f
+
+psql:           ## Postgres console in the Compose stack as the owner (sees every shop)
+	docker compose exec postgres psql -U postgres -d riverbend
+
+psql-app:       ## Same, as the app role: row-level security applies. Try: SET app.shop_id = 'rb-downtown';
+	docker compose exec postgres psql -U riverbend_app -d riverbend
 
 test:           ## Unit + DB tests (needs Postgres from `docker compose up postgres`)
 	uv run pytest -q

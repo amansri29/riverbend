@@ -25,6 +25,7 @@ make run        # Postgres (host :5433) + Pub/Sub emulator + migrate/seed + API 
 make samples    # send the 40 sample messages, reply to follow-ups, write docs/results.md
 make test       # 82 tests; DB tests need Postgres (docker compose up postgres, or a local one)
 make coverage   # same tests with line coverage (84%); report in htmlcov/index.html
+make psql       # Postgres console as the owner; make psql-app connects as the app role (RLS on)
 ```
 
 To use the real model, set in `.env`: `LLM_PROVIDER=azure`, `AZURE_OPENAI_ENDPOINT`,
