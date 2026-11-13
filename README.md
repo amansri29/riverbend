@@ -23,7 +23,8 @@ model key is needed; the pipeline runs on a stand-in provider.
 ```
 make run        # Postgres (host :5433) + Pub/Sub emulator + migrate/seed + API :8080 + worker :8081
 make samples    # send the 40 sample messages, reply to follow-ups, write docs/results.md
-make test       # 78 tests; DB tests need Postgres (docker compose up postgres, or a local one)
+make test       # 82 tests; DB tests need Postgres (docker compose up postgres, or a local one)
+make coverage   # same tests with line coverage (84%); report in htmlcov/index.html
 ```
 
 To use the real model, set in `.env`: `LLM_PROVIDER=azure`, `AZURE_OPENAI_ENDPOINT`,

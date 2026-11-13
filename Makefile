@@ -1,4 +1,4 @@
-.PHONY: run stop logs test lint migrate seed samples fmt
+.PHONY: run stop logs logs-all test coverage lint migrate samples fmt note
 
 run:            ## One-command local run: Postgres + Pub/Sub emulator + API + worker
 	docker compose up --build
@@ -6,11 +6,17 @@ run:            ## One-command local run: Postgres + Pub/Sub emulator + API + wo
 stop:
 	docker compose down -v
 
-logs:
+logs:           ## Follow the API and worker (one line per stage; grep 'message=<id>' to follow one message)
 	docker compose logs -f api worker
+
+logs-all:       ## Everything, including the Pub/Sub emulator and Postgres (noisy; for delivery problems)
+	docker compose logs -f
 
 test:           ## Unit + DB tests (needs Postgres from `docker compose up postgres`)
 	uv run pytest -q
+
+coverage:       ## Tests with line coverage: summary in the terminal, details in htmlcov/index.html
+	uv run pytest -q --cov=app --cov-report=term-missing:skip-covered --cov-report=html
 
 lint:
 	uv run ruff check . && uv run ruff format --check .
